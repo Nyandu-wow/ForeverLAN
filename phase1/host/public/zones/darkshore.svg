@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 140" width="320" height="140" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g-darkshore" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a3048"/>
+      <stop offset="55%" stop-color="#2a4868"/>
+      <stop offset="100%" stop-color="#102030"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="140" fill="url(#g-darkshore)"/>
+  <path d="M0 80 Q80 100 160 75 T320 90 V140 H0 Z" fill="#6888a8" opacity=".35"/><path d="M0 100 Q100 120 200 95 T320 110 V140 H0 Z" fill="#6888a8" opacity=".25"/>
+  <rect width="320" height="140" fill="#000" opacity=".18"/>
+</svg>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 140" width="320" height="140" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g-eastern-kingdoms" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7090b0"/>
+      <stop offset="55%" stop-color="#90b080"/>
+      <stop offset="100%" stop-color="#506070"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="140" fill="url(#g-eastern-kingdoms)"/>
+  <ellipse cx="120" cy="80" rx="70" ry="40" fill="#c0d8e0" opacity=".3"/><ellipse cx="210" cy="90" rx="55" ry="35" fill="#c0d8e0" opacity=".25"/>
+  <rect width="320" height="140" fill="#000" opacity=".18"/>
+</svg>

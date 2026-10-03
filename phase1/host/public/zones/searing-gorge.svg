@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 140" width="320" height="140" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g-searing-gorge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a84828"/>
+      <stop offset="55%" stop-color="#c86838"/>
+      <stop offset="100%" stop-color="#401808"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="140" fill="url(#g-searing-gorge)"/>
+  <path d="M80 120 L100 50 L120 120 Z" fill="#e08850" opacity=".5"/><path d="M150 120 L175 40 L200 120 Z" fill="#e08850" opacity=".6"/><path d="M220 120 L245 55 L270 120 Z" fill="#e08850" opacity=".45"/>
+  <rect width="320" height="140" fill="#000" opacity=".18"/>
+</svg>

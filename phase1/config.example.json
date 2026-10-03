@@ -1,0 +1,23 @@
+{
+  "hostUrl": "http://127.0.0.1:8765",
+  "publicHostname": "foreverlan.example.com",
+  "publicBaseUrl": "https://foreverlan.example.com",
+  "lanToken": "GENERATE_A_LONG_RANDOM_TOKEN",
+  "listenHost": "0.0.0.0",
+  "listenPort": 8765,
+  "wowRoot": "C:\\Games\\FOREVER\\World of Warcraft",
+  "clientFolder": "_classic_beta_",
+  "pollClipboardMs": 400,
+  "pollCombatLogMs": 500,
+  "pollProcessMs": 2000,
+  "outboxPath": "./data/outbox.jsonl",
+  "statePath": "./data/collector-state.json",
+  "lanRoster": ["Alex River", "Sam Hill", "Jordan Vale", "Casey Brook"],
+  "lanRosterAliases": { "Casey": "Casey Brook", "Jordan": "Jordan Vale", "Sam": "Sam Hill" },
+  "lanBoardExclude": ["Bank Alt"],
+  "lanRosterAuto": true,
+  "lanWeekendStart": "2026-11-06",
+  "lanName": "Forever Leveling",
+  "lanLevelCap": 60,
+  "foreverBetaLaunch": "2026-11-04"
+}

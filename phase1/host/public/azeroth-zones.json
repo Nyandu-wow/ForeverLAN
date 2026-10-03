@@ -1,0 +1,786 @@
+{
+  "canvas": {
+    "left": -3,
+    "top": -5,
+    "right": 80.969,
+    "bottom": 50.979
+  },
+  "zones": [
+    {
+      "name": "Dun Morogh",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1426,
+      "levels": [
+        1,
+        10
+      ],
+      "city": false,
+      "left": 68.62,
+      "top": 46.93,
+      "width": 11,
+      "height": 11,
+      "cx": 74.12,
+      "cy": 52.43
+    },
+    {
+      "name": "Elwynn Forest",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1429,
+      "levels": [
+        1,
+        10
+      ],
+      "city": false,
+      "left": 69.22,
+      "top": 60.53,
+      "width": 7.75,
+      "height": 7.75,
+      "cx": 73.09,
+      "cy": 64.41
+    },
+    {
+      "name": "Tirisfal Glades",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1420,
+      "levels": [
+        1,
+        10
+      ],
+      "city": false,
+      "left": 65.87,
+      "top": 21.09,
+      "width": 10.09,
+      "height": 10.09,
+      "cx": 70.92,
+      "cy": 26.13
+    },
+    {
+      "name": "Loch Modan",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1432,
+      "levels": [
+        10,
+        20
+      ],
+      "city": false,
+      "left": 77.1,
+      "top": 48.97,
+      "width": 6.16,
+      "height": 6.16,
+      "cx": 80.18,
+      "cy": 52.05
+    },
+    {
+      "name": "Silverpine Forest",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1421,
+      "levels": [
+        10,
+        20
+      ],
+      "city": false,
+      "left": 64.94,
+      "top": 28.36,
+      "width": 9.38,
+      "height": 9.38,
+      "cx": 69.63,
+      "cy": 33.05
+    },
+    {
+      "name": "Westfall",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1436,
+      "levels": [
+        10,
+        20
+      ],
+      "city": false,
+      "left": 65.91,
+      "top": 65.43,
+      "width": 7.82,
+      "height": 7.82,
+      "cx": 69.82,
+      "cy": 69.33
+    },
+    {
+      "name": "Redridge Mountains",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1433,
+      "levels": [
+        15,
+        25
+      ],
+      "city": false,
+      "left": 76.4,
+      "top": 62.66,
+      "width": 4.85,
+      "height": 4.85,
+      "cx": 78.82,
+      "cy": 65.09
+    },
+    {
+      "name": "Duskwood",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1431,
+      "levels": [
+        18,
+        30
+      ],
+      "city": false,
+      "left": 70.79,
+      "top": 66.49,
+      "width": 6.03,
+      "height": 6.03,
+      "cx": 73.8,
+      "cy": 69.5
+    },
+    {
+      "name": "Hillsbrad Foothills",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1424,
+      "levels": [
+        20,
+        30
+      ],
+      "city": false,
+      "left": 70.26,
+      "top": 32.6,
+      "width": 7.15,
+      "height": 7.15,
+      "cx": 73.84,
+      "cy": 36.17
+    },
+    {
+      "name": "Wetlands",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1437,
+      "levels": [
+        20,
+        30
+      ],
+      "city": false,
+      "left": 73.52,
+      "top": 41.14,
+      "width": 9.23,
+      "height": 9.23,
+      "cx": 78.13,
+      "cy": 45.75
+    },
+    {
+      "name": "Alterac Mountains",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1416,
+      "levels": [
+        30,
+        40
+      ],
+      "city": false,
+      "left": 70.9,
+      "top": 28.92,
+      "width": 6.25,
+      "height": 6.25,
+      "cx": 74.02,
+      "cy": 32.04
+    },
+    {
+      "name": "Arathi Highlands",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1417,
+      "levels": [
+        30,
+        40
+      ],
+      "city": false,
+      "left": 74.58,
+      "top": 34.39,
+      "width": 8.04,
+      "height": 8.04,
+      "cx": 78.6,
+      "cy": 38.41
+    },
+    {
+      "name": "Stranglethorn Vale",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1434,
+      "levels": [
+        30,
+        45
+      ],
+      "city": false,
+      "left": 67.69,
+      "top": 71.35,
+      "width": 14.25,
+      "height": 14.25,
+      "cx": 74.81,
+      "cy": 78.48
+    },
+    {
+      "name": "Badlands",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1418,
+      "levels": [
+        35,
+        45
+      ],
+      "city": false,
+      "left": 77.29,
+      "top": 53.67,
+      "width": 5.55,
+      "height": 5.55,
+      "cx": 80.07,
+      "cy": 56.45
+    },
+    {
+      "name": "Riverglades",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 2548,
+      "levels": [
+        35,
+        45
+      ],
+      "city": false,
+      "left": 76.87,
+      "top": 55.6,
+      "width": 10.83,
+      "height": 10.83,
+      "cx": 82.28,
+      "cy": 61.02
+    },
+    {
+      "name": "Swamp of Sorrows",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1435,
+      "levels": [
+        35,
+        45
+      ],
+      "city": false,
+      "left": 77.61,
+      "top": 66.17,
+      "width": 5.12,
+      "height": 5.12,
+      "cx": 80.17,
+      "cy": 68.73
+    },
+    {
+      "name": "The Hinterlands",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1425,
+      "levels": [
+        40,
+        50
+      ],
+      "city": false,
+      "left": 76.16,
+      "top": 29.03,
+      "width": 8.6,
+      "height": 8.6,
+      "cx": 80.46,
+      "cy": 33.33
+    },
+    {
+      "name": "Searing Gorge",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1427,
+      "levels": [
+        43,
+        50
+      ],
+      "city": false,
+      "left": 73.37,
+      "top": 54.37,
+      "width": 4.98,
+      "height": 4.98,
+      "cx": 75.86,
+      "cy": 56.86
+    },
+    {
+      "name": "Blasted Lands",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1419,
+      "levels": [
+        45,
+        55
+      ],
+      "city": false,
+      "left": 75.42,
+      "top": 69.33,
+      "width": 7.48,
+      "height": 7.48,
+      "cx": 79.16,
+      "cy": 73.07
+    },
+    {
+      "name": "Burning Steppes",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1428,
+      "levels": [
+        50,
+        58
+      ],
+      "city": false,
+      "left": 73.24,
+      "top": 57.49,
+      "width": 6.54,
+      "height": 6.54,
+      "cx": 76.51,
+      "cy": 60.76
+    },
+    {
+      "name": "Deadwind Pass",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1430,
+      "levels": [
+        50,
+        60
+      ],
+      "city": false,
+      "left": 74.51,
+      "top": 66.99,
+      "width": 5.58,
+      "height": 5.58,
+      "cx": 77.3,
+      "cy": 69.78
+    },
+    {
+      "name": "Western Plaguelands",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1422,
+      "levels": [
+        51,
+        58
+      ],
+      "city": false,
+      "left": 71.72,
+      "top": 22.66,
+      "width": 9.6,
+      "height": 9.6,
+      "cx": 76.52,
+      "cy": 27.47
+    },
+    {
+      "name": "Eastern Plaguelands",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1423,
+      "levels": [
+        53,
+        60
+      ],
+      "city": false,
+      "left": 77.68,
+      "top": 21.58,
+      "width": 9.61,
+      "height": 9.6,
+      "cx": 82.49,
+      "cy": 26.38
+    },
+    {
+      "name": "Ironforge",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1455,
+      "levels": null,
+      "city": false,
+      "left": 74.24,
+      "top": 49.25,
+      "width": 1.77,
+      "height": 1.77,
+      "cx": 75.12,
+      "cy": 50.13
+    },
+    {
+      "name": "Stormwind City",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1453,
+      "levels": null,
+      "city": false,
+      "left": 68.8,
+      "top": 60.72,
+      "width": 3.88,
+      "height": 3.88,
+      "cx": 70.74,
+      "cy": 62.66
+    },
+    {
+      "name": "Undercity",
+      "continent": "Eastern Kingdoms",
+      "uiMapId": 1458,
+      "levels": null,
+      "city": false,
+      "left": 70.7,
+      "top": 27.65,
+      "width": 2.14,
+      "height": 2.14,
+      "cx": 71.77,
+      "cy": 28.72
+    },
+    {
+      "name": "Durotar",
+      "continent": "Kalimdor",
+      "uiMapId": 1411,
+      "levels": [
+        1,
+        10
+      ],
+      "city": false,
+      "left": 23.44,
+      "top": 43.96,
+      "width": 11.81,
+      "height": 11.81,
+      "cx": 29.34,
+      "cy": 49.87
+    },
+    {
+      "name": "Mulgore",
+      "continent": "Kalimdor",
+      "uiMapId": 1412,
+      "levels": [
+        1,
+        10
+      ],
+      "city": false,
+      "left": 13.52,
+      "top": 49.13,
+      "width": 13.74,
+      "height": 13.74,
+      "cx": 20.39,
+      "cy": 56
+    },
+    {
+      "name": "Teldrassil",
+      "continent": "Kalimdor",
+      "uiMapId": 1438,
+      "levels": [
+        1,
+        10
+      ],
+      "city": false,
+      "left": 10.54,
+      "top": 10.39,
+      "width": 11.37,
+      "height": 11.37,
+      "cx": 16.22,
+      "cy": 16.07
+    },
+    {
+      "name": "Darkshore",
+      "continent": "Kalimdor",
+      "uiMapId": 1439,
+      "levels": [
+        10,
+        20
+      ],
+      "city": false,
+      "left": 12.49,
+      "top": 22.11,
+      "width": 14.63,
+      "height": 14.63,
+      "cx": 19.8,
+      "cy": 29.42
+    },
+    {
+      "name": "The Barrens",
+      "continent": "Kalimdor",
+      "uiMapId": 1413,
+      "levels": [
+        10,
+        25
+      ],
+      "city": false,
+      "left": 13.2,
+      "top": 44.62,
+      "width": 22.63,
+      "height": 22.63,
+      "cx": 24.51,
+      "cy": 55.93
+    },
+    {
+      "name": "Stonetalon Mountains",
+      "continent": "Kalimdor",
+      "uiMapId": 1442,
+      "levels": [
+        15,
+        27
+      ],
+      "city": false,
+      "left": 11.81,
+      "top": 40.25,
+      "width": 10.9,
+      "height": 10.91,
+      "cx": 17.26,
+      "cy": 45.7
+    },
+    {
+      "name": "Ashenvale",
+      "continent": "Kalimdor",
+      "uiMapId": 1440,
+      "levels": [
+        18,
+        30
+      ],
+      "city": false,
+      "left": 15.26,
+      "top": 34.37,
+      "width": 12.88,
+      "height": 12.87,
+      "cx": 21.7,
+      "cy": 40.8
+    },
+    {
+      "name": "Thousand Needles",
+      "continent": "Kalimdor",
+      "uiMapId": 1441,
+      "levels": [
+        25,
+        35
+      ],
+      "city": false,
+      "left": 20.02,
+      "top": 63.3,
+      "width": 9.83,
+      "height": 9.83,
+      "cx": 24.93,
+      "cy": 68.22
+    },
+    {
+      "name": "Desolace",
+      "continent": "Kalimdor",
+      "uiMapId": 1443,
+      "levels": [
+        30,
+        40
+      ],
+      "city": false,
+      "left": 9.6,
+      "top": 48.5,
+      "width": 10.04,
+      "height": 10.04,
+      "cx": 14.62,
+      "cy": 53.53
+    },
+    {
+      "name": "Dustwallow Marsh",
+      "continent": "Kalimdor",
+      "uiMapId": 1445,
+      "levels": [
+        35,
+        45
+      ],
+      "city": false,
+      "left": 21.23,
+      "top": 56.83,
+      "width": 11.72,
+      "height": 11.72,
+      "cx": 27.09,
+      "cy": 62.69
+    },
+    {
+      "name": "Feralas",
+      "continent": "Kalimdor",
+      "uiMapId": 1444,
+      "levels": [
+        40,
+        50
+      ],
+      "city": false,
+      "left": 6.9,
+      "top": 57.95,
+      "width": 15.52,
+      "height": 15.52,
+      "cx": 14.66,
+      "cy": 65.71
+    },
+    {
+      "name": "Tanaris",
+      "continent": "Kalimdor",
+      "uiMapId": 1446,
+      "levels": [
+        40,
+        50
+      ],
+      "city": false,
+      "left": 19.54,
+      "top": 69.7,
+      "width": 15.41,
+      "height": 15.41,
+      "cx": 27.25,
+      "cy": 77.4
+    },
+    {
+      "name": "Azshara",
+      "continent": "Kalimdor",
+      "uiMapId": 1447,
+      "levels": [
+        45,
+        55
+      ],
+      "city": false,
+      "left": 26.37,
+      "top": 32.13,
+      "width": 11.32,
+      "height": 11.33,
+      "cx": 32.03,
+      "cy": 37.79
+    },
+    {
+      "name": "Felwood",
+      "continent": "Kalimdor",
+      "uiMapId": 1448,
+      "levels": [
+        48,
+        55
+      ],
+      "city": false,
+      "left": 15.39,
+      "top": 26.13,
+      "width": 12.84,
+      "height": 12.84,
+      "cx": 21.81,
+      "cy": 32.55
+    },
+    {
+      "name": "Un'Goro Crater",
+      "continent": "Kalimdor",
+      "uiMapId": 1449,
+      "levels": [
+        48,
+        55
+      ],
+      "city": false,
+      "left": 17.86,
+      "top": 70,
+      "width": 8.26,
+      "height": 8.26,
+      "cx": 21.99,
+      "cy": 74.13
+    },
+    {
+      "name": "Silithus",
+      "continent": "Kalimdor",
+      "uiMapId": 1451,
+      "levels": [
+        55,
+        60
+      ],
+      "city": false,
+      "left": 13.39,
+      "top": 69.98,
+      "width": 7.78,
+      "height": 7.78,
+      "cx": 17.28,
+      "cy": 73.87
+    },
+    {
+      "name": "Winterspring",
+      "continent": "Kalimdor",
+      "uiMapId": 1452,
+      "levels": [
+        55,
+        60
+      ],
+      "city": false,
+      "left": 19.76,
+      "top": 21.44,
+      "width": 15.85,
+      "height": 15.85,
+      "cx": 27.69,
+      "cy": 29.36
+    },
+    {
+      "name": "Mount Hyjal",
+      "continent": "Kalimdor",
+      "uiMapId": 2482,
+      "levels": [
+        60,
+        60
+      ],
+      "city": false,
+      "left": 21.12,
+      "top": 28.9,
+      "width": 7.75,
+      "height": 7.75,
+      "cx": 24.99,
+      "cy": 32.78
+    },
+    {
+      "name": "Darnassus",
+      "continent": "Kalimdor",
+      "uiMapId": 1457,
+      "levels": null,
+      "city": false,
+      "left": 12.49,
+      "top": 15.73,
+      "width": 2.36,
+      "height": 2.36,
+      "cx": 13.67,
+      "cy": 16.91
+    },
+    {
+      "name": "Moonglade",
+      "continent": "Kalimdor",
+      "uiMapId": 1450,
+      "levels": null,
+      "city": false,
+      "left": 22.14,
+      "top": 21.58,
+      "width": 5.15,
+      "height": 5.16,
+      "cx": 24.72,
+      "cy": 24.15
+    },
+    {
+      "name": "Orgrimmar",
+      "continent": "Kalimdor",
+      "uiMapId": 1454,
+      "levels": null,
+      "city": false,
+      "left": 27.27,
+      "top": 42.4,
+      "width": 3.13,
+      "height": 3.13,
+      "cx": 28.84,
+      "cy": 43.97
+    },
+    {
+      "name": "Shen'dralas",
+      "continent": "Kalimdor",
+      "uiMapId": 2652,
+      "levels": null,
+      "city": false,
+      "left": 14.53,
+      "top": 56.38,
+      "width": 4.58,
+      "height": 4.58,
+      "cx": 16.82,
+      "cy": 58.67
+    },
+    {
+      "name": "Thunder Bluff",
+      "continent": "Kalimdor",
+      "uiMapId": 1456,
+      "levels": null,
+      "city": false,
+      "left": 17.9,
+      "top": 52.87,
+      "width": 2.33,
+      "height": 2.33,
+      "cx": 19.07,
+      "cy": 54.03
+    },
+    {
+      "name": "Zephras Isle",
+      "continent": "Zephras Isle",
+      "uiMapId": 2521,
+      "levels": [
+        1,
+        12
+      ],
+      "city": false,
+      "left": 2.46,
+      "top": 10.19,
+      "width": 12.42,
+      "height": 12.42,
+      "cx": 8.67,
+      "cy": 16.41
+    }
+  ]
+}

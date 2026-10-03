@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Forever LAN — Phase 1 Telemetry</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0e1116;
+        --panel: #171b22;
+        --text: #e8edf5;
+        --muted: #93a0b4;
+        --accent: #7ad1ff;
+        --line: #2a3342;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
+        background:
+          radial-gradient(1200px 600px at 20% -10%, #1a2435 0%, transparent 60%),
+          radial-gradient(900px 500px at 100% 0%, #1c1828 0%, transparent 50%),
+          var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+      }
+      header {
+        padding: 1.25rem 1.5rem 0.75rem;
+        border-bottom: 1px solid var(--line);
+      }
+      h1 {
+        margin: 0;
+        font-size: 1.25rem;
+        letter-spacing: 0.04em;
+        font-weight: 600;
+      }
+      .sub {
+        color: var(--muted);
+        margin-top: 0.35rem;
+        font-size: 0.85rem;
+      }
+      .status {
+        margin-top: 0.75rem;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .status strong { color: var(--accent); font-weight: 600; }
+      main {
+        padding: 1rem 1.5rem 2rem;
+        max-width: 960px;
+      }
+      #feed {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      .card {
+        background: color-mix(in srgb, var(--panel) 92%, black);
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--accent);
+        padding: 0.85rem 1rem;
+        white-space: pre-wrap;
+        line-height: 1.45;
+      }
+      .empty {
+        color: var(--muted);
+        padding: 2rem 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>FOREVER LAN — Phase 1</h1>
+      <div class="sub">Telemetry spike viewer (not the product dashboard)</div>
+      <div class="status">
+        <div>SSE: <strong id="sse">connecting…</strong></div>
+        <div>Events: <strong id="count">0</strong></div>
+      </div>
+    </header>
+    <main>
+      <div id="feed"><div class="empty">Waiting for collector events…</div></div>
+    </main>
+    <script>
+      const feed = document.getElementById("feed");
+      const countEl = document.getElementById("count");
+      const sseEl = document.getElementById("sse");
+      let count = 0;
+      let cleared = false;
+
+      function addText(text) {
+        if (!cleared) {
+          feed.innerHTML = "";
+          cleared = true;
+        }
+        const el = document.createElement("div");
+        el.className = "card";
+        el.textContent = text;
+        feed.prepend(el);
+        count += 1;
+        countEl.textContent = String(count);
+      }
+
+      function connect() {
+        const es = new EventSource("/stream");
+        es.onopen = () => { sseEl.textContent = "live"; };
+        es.onerror = () => { sseEl.textContent = "reconnecting…"; };
+        es.onmessage = (msg) => {
+          try {
+            const data = JSON.parse(msg.data);
+            addText(data.text || JSON.stringify(data.event));
+          } catch (err) {
+            addText(String(msg.data));
+          }
+        };
+      }
+      connect();
+    </script>
+  </body>
+</html>

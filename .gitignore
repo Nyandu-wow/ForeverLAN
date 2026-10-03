@@ -1,0 +1,31 @@
+# Secrets / local host config (keep config.example.json)
+phase1/config.json
+**/config.local.json
+.env
+.env.*
+!.env.example
+
+# Large local archives
+*.zip
+phase1 (2).zip
+
+# Runtime / local data
+phase1/data/
+phase1/.cache/
+phase1/backups/
+**/outbox.jsonl
+**/collector-state.json
+**/addon-ack.json
+**/foreverlan.sqlite
+**/host-events.jsonl
+**/ingest.log
+**/lan-state.json
+**/tmp-*.json
+**/tmp-*.lua
+
+# OS / editor
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.log
+node_modules/

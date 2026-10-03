@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 140" width="320" height="140" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g-winterspring" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#90b0d0"/>
+      <stop offset="55%" stop-color="#c0d8e8"/>
+      <stop offset="100%" stop-color="#7090a8"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="140" fill="url(#g-winterspring)"/>
+  <circle cx="40" cy="36" r="18" fill="#e8f4fc" opacity=".35"/><circle cx="120" cy="44" r="26" fill="#e8f4fc" opacity=".28"/><circle cx="200" cy="32" r="20" fill="#e8f4fc" opacity=".32"/>
+      <path d="M0 95 L40 70 L80 95 L120 60 L160 95 L200 55 L240 95 L280 65 L320 95 V140 H0 Z" fill="#e8f4fc" opacity=".45"/>
+  <rect width="320" height="140" fill="#000" opacity=".18"/>
+</svg>

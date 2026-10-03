@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 140" width="320" height="140" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g-dustwallow-marsh" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#609080"/>
+      <stop offset="55%" stop-color="#80b0a0"/>
+      <stop offset="100%" stop-color="#407060"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="140" fill="url(#g-dustwallow-marsh)"/>
+  <ellipse cx="160" cy="95" rx="90" ry="28" fill="#a0d0c0" opacity=".4"/><ellipse cx="160" cy="95" rx="60" ry="16" fill="#a0d0c0" opacity=".25"/>
+  <rect width="320" height="140" fill="#000" opacity=".18"/>
+</svg>

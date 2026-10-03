@@ -1,0 +1,1663 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Forever LAN</title>
+    <script>
+      (function () {
+        try {
+          var f = localStorage.getItem("forever-lan-faction");
+          if (f !== "horde" && f !== "alliance") f = "alliance";
+          document.documentElement.setAttribute("data-faction", f);
+        } catch (e) {
+          document.documentElement.setAttribute("data-faction", "alliance");
+        }
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=IM+Fell+English:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/public/lan-chrome.css?v=forever2" />
+    <style>
+      :root {
+        --ding: #7dcf8a;
+        --death: #e8b84a;
+        --pvp: #d46a6a;
+        --dungeon: #7aa7d4;
+        --party: #c4a878;
+        --zone: #a8b89a;
+      }
+      /* Same centered shell as Characters / Wrap — not a full-bleed TV board */
+      .shell {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+      .chrome {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+      .chrome .sub {
+        margin: 0.12rem 0 0;
+        font-size: 0.92rem;
+        color: var(--ink-dim);
+        text-shadow: none;
+      }
+      .live-meta {
+        text-align: right;
+        font-family: Cinzel, serif;
+        font-size: 0.75rem;
+        letter-spacing: 0.1em;
+        color: var(--ink-dim);
+      }
+      .live-meta .nav {
+        justify-content: flex-end;
+        margin-bottom: 0.4rem;
+      }
+      .live-meta strong {
+        display: block;
+        color: var(--gold);
+        font-size: 1.05rem;
+        margin-top: 0.15rem;
+      }
+      .dot {
+        display: inline-block;
+        width: 0.55rem;
+        height: 0.55rem;
+        border-radius: 50%;
+        background: var(--offline);
+        margin-right: 0.35rem;
+        box-shadow: 0 0 8px currentColor;
+      }
+      .dot.on { background: var(--online); color: var(--online); }
+
+      .right-now {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        align-items: stretch;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        box-shadow: var(--frame-shadow);
+        padding: 0.45rem 0.55rem;
+        font-family: Cinzel, serif;
+        font-size: 0.68rem;
+        letter-spacing: 0.08em;
+        color: var(--ink-dim);
+      }
+      .right-now > span {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 0.28rem;
+        padding: 0.28rem 0.5rem;
+        background: rgba(6, 16, 28, 0.35);
+        border: 1px solid rgba(231, 197, 106, 0.16);
+      }
+      .right-now .sep { display: none; }
+      .right-now b {
+        color: var(--cream, var(--ink));
+        font-family: var(--display), Georgia, serif;
+        font-weight: 600;
+        font-size: 1.15rem;
+        letter-spacing: 0;
+        margin-right: 0;
+      }
+
+      .obs {
+        min-height: 1.35rem;
+        font-size: 1.05rem;
+        font-style: italic;
+        color: var(--ink);
+        padding: 0 0.15rem;
+      }
+      .obs span { color: var(--gold); }
+
+      .attention {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem 0.85rem;
+        align-items: baseline;
+        padding: 0.45rem 0.85rem;
+        background: var(--panel-raised);
+        border: 1px solid rgba(232, 184, 74, 0.55);
+        font-family: Cinzel, serif;
+        font-size: 0.78rem;
+        letter-spacing: 0.08em;
+        color: var(--ink);
+      }
+      .attention[hidden] { display: none !important; }
+      .attention .lbl {
+        color: var(--gold);
+        font-size: 0.62rem;
+        letter-spacing: 0.16em;
+        margin-right: 0.15rem;
+      }
+      .attention .attn-death { color: var(--death); }
+      .attention .attn-chase { color: var(--ding); }
+      .attention .attn-quiet { color: var(--ink-dim); }
+
+      .board-status {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.4rem 0.75rem;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        font-family: Cinzel, serif;
+        font-size: 0.68rem;
+        letter-spacing: 0.12em;
+        color: var(--gold);
+      }
+      .board-status[hidden] { display: none; }
+      .board-status .pulse {
+        width: 0.55rem;
+        height: 0.55rem;
+        border-radius: 50%;
+        background: var(--gold);
+        box-shadow: 0 0 0 0 rgba(232, 197, 106, 0.55);
+        animation: boardPulse 1.4s ease-out infinite;
+        flex-shrink: 0;
+      }
+      @keyframes boardPulse {
+        0% { box-shadow: 0 0 0 0 rgba(232, 197, 106, 0.45); }
+        70% { box-shadow: 0 0 0 0.45rem rgba(232, 197, 106, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(232, 197, 106, 0); }
+      }
+
+      .broadcast {
+        background: linear-gradient(180deg, rgba(8, 18, 32, 0.42), rgba(6, 12, 22, 0.72));
+        border: 1px solid var(--border);
+        box-shadow: var(--frame-shadow);
+        padding: 0.85rem 1.1rem 1rem;
+        text-align: center;
+      }
+      .broadcast .eyebrow {
+        font-family: Cinzel, serif;
+        font-size: 0.62rem;
+        letter-spacing: 0.22em;
+        color: var(--gold);
+        margin-bottom: 0.35rem;
+      }
+      .broadcast .line {
+        font-family: var(--display), Georgia, serif;
+        font-weight: 600;
+        font-size: clamp(1.2rem, 2.3vw, 1.65rem);
+        letter-spacing: 0.04em;
+        color: var(--cream, var(--ink));
+        line-height: 1.15;
+        text-shadow: 0 2px 18px rgba(0, 8, 20, 0.65);
+      }
+      .broadcast .subline {
+        margin-top: 0.35rem;
+        font-family: var(--story), Georgia, serif;
+        font-size: clamp(0.95rem, 1.5vw, 1.15rem);
+        font-style: italic;
+        color: var(--ink-dim);
+        line-height: 1.35;
+        letter-spacing: 0.01em;
+      }
+      .broadcast .subline[hidden] { display: none; }
+      .feed .t-sub {
+        display: block;
+        margin-top: 0.15rem;
+        font-size: 0.78rem;
+        color: var(--ink-dim);
+        font-style: italic;
+        letter-spacing: 0;
+        font-family: var(--story), Georgia, serif;
+      }
+      .rivalry {
+        display: flex;
+        justify-content: center;
+        align-items: baseline;
+        gap: 1rem;
+        flex-wrap: wrap;
+        padding: 0.4rem 0.75rem;
+        border: 1px solid rgba(201, 162, 74, 0.35);
+        background: var(--panel-inset);
+        font-family: Cinzel, serif;
+        letter-spacing: 0.1em;
+      }
+      .rivalry[hidden] { display: none !important; }
+      .rivalry .vs {
+        color: var(--gold);
+        font-size: 1.15rem;
+      }
+      .rivalry .meta {
+        color: var(--ink-dim);
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+      }
+
+      .race-strip {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+        gap: 0.55rem;
+      }
+      @media (max-width: 520px) {
+        .race-strip { grid-template-columns: 1fr; }
+      }
+      .race-card {
+        min-width: 0;
+        background: var(--card-sheen);
+        border: 1px solid var(--border);
+        padding: 0.55rem 0.7rem 0.6rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        box-shadow: var(--frame-shadow), inset 3px 0 0 var(--gold-deep);
+        position: relative;
+        overflow: hidden;
+        text-decoration: none;
+        color: inherit;
+      }
+      a.race-card:hover { border-color: var(--gold); }
+      .race-card.lead {
+        border-color: var(--border-strong);
+        box-shadow: var(--frame-shadow), inset 3px 0 0 var(--gold);
+      }
+      .race-card.c-MAGE { box-shadow: var(--frame-shadow), inset 3px 0 0 #69ccf0; }
+      .race-card.c-WARRIOR { box-shadow: var(--frame-shadow), inset 3px 0 0 #c79c6e; }
+      .race-card.c-ROGUE { box-shadow: var(--frame-shadow), inset 3px 0 0 #fff569; }
+      .race-card.c-PRIEST { box-shadow: var(--frame-shadow), inset 3px 0 0 #f0ebe3; }
+      .race-card.c-HUNTER { box-shadow: var(--frame-shadow), inset 3px 0 0 #abd473; }
+      .race-card.c-WARLOCK { box-shadow: var(--frame-shadow), inset 3px 0 0 #9482c9; }
+      .race-card.c-DRUID { box-shadow: var(--frame-shadow), inset 3px 0 0 #ff7d0a; }
+      .race-card.c-PALADIN { box-shadow: var(--frame-shadow), inset 3px 0 0 #f58cba; }
+      .race-card.c-SHAMAN { box-shadow: var(--frame-shadow), inset 3px 0 0 #0070de; }
+      .race-card .name {
+        font-family: var(--display), Georgia, serif;
+        font-weight: 600;
+        font-size: 1.05rem;
+        letter-spacing: 0.01em;
+        line-height: 1.15;
+        padding-right: 1.4rem;
+        color: var(--cream, var(--ink));
+        word-break: break-word;
+      }
+      .race-card .lvl {
+        font-family: var(--display), Georgia, serif;
+        font-weight: 600;
+        font-size: clamp(1.85rem, 3vw, 2.35rem);
+        color: var(--gold);
+        line-height: 0.95;
+        margin: 0.15rem 0 0.05rem;
+      }
+      .race-card .place {
+        position: absolute;
+        top: 0.3rem;
+        right: 0.5rem;
+        font-family: Cinzel, serif;
+        font-size: 0.85rem;
+        letter-spacing: 0.08em;
+        color: rgba(231, 197, 106, 0.45);
+      }
+      .race-card .gained {
+        color: var(--ding);
+        font-family: Cinzel, serif;
+        font-size: 0.8rem;
+        letter-spacing: 0.08em;
+      }
+      .race-card .gap {
+        color: var(--ink-dim);
+        font-size: 0.88rem;
+        margin-top: 0.1rem;
+      }
+      .race-card .zone {
+        color: var(--ink-dim);
+        font-size: 0.82rem;
+        margin-top: 0.2rem;
+        line-height: 1.25;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .race-card .status {
+        margin-top: 0.35rem;
+        font-family: Cinzel, serif;
+        font-size: 0.58rem;
+        letter-spacing: 0.12em;
+        color: var(--offline);
+      }
+      .race-card .status.on { color: var(--online); }
+      .race-card .status.dead { color: var(--death); }
+      .race-card .status.stale { color: var(--gold); }
+      .race-card .status.catchup { color: #7ad1ff; }
+      .race-card .status .sep { opacity: 0.4; margin: 0 0.25rem; }
+      .race-card .freshness {
+        font-family: var(--story), Georgia, serif;
+        font-size: 0.62rem;
+        color: var(--ink-dim);
+        margin-top: 0.15rem;
+        line-height: 1.25;
+      }
+      .race-pulse {
+        margin: 0.35rem 0 0;
+        font-family: Cinzel, serif;
+        font-size: clamp(0.85rem, 1.6vw, 1.15rem);
+        letter-spacing: 0.04em;
+        color: var(--gold);
+      }
+      .race-pulse .sub {
+        display: block;
+        margin-top: 0.2rem;
+        font-family: var(--story), Georgia, serif;
+        font-size: 0.72rem;
+        color: var(--ink-dim);
+        letter-spacing: 0;
+        font-weight: 400;
+      }
+      .since-lines { margin-top: 0.25rem; }
+      .since-lines div {
+        font-family: var(--story), Georgia, serif;
+        font-size: 0.85rem;
+        padding: 0.15rem 0;
+        border-bottom: 1px solid rgba(201,162,74,0.12);
+      }
+      .since-lines div:last-child { border-bottom: 0; }
+      .race-card.fallen {
+        border-color: rgba(232, 184, 74, 0.85);
+        background: var(--panel-raised);
+      }
+      .race-card .recap {
+        color: var(--death);
+        font-size: 0.82rem;
+        margin-top: 0.15rem;
+        font-style: italic;
+        letter-spacing: 0.02em;
+        font-family: var(--story), Georgia, serif;
+      }
+      .race-card .corpse-live {
+        color: var(--death);
+        font-family: Cinzel, serif;
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        margin-top: 0.15rem;
+      }
+      .bar {
+        margin-top: 0.4rem;
+        height: 4px;
+        background: rgba(0, 0, 0, 0.45);
+        border: 1px solid rgba(201, 162, 74, 0.25);
+      }
+      .bar > span {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, var(--gold-deep), var(--gold));
+        width: 0%;
+        transition: width 0.6s ease;
+      }
+
+      /* Story row under the full-width race */
+      .control-room {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+        gap: 0.65rem;
+        align-items: stretch;
+      }
+      .control-story {
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+        min-width: 0;
+      }
+      .below-fold {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 0.65rem;
+      }
+      .panel {
+        background: var(--card-sheen);
+        border: 1px solid var(--border);
+        box-shadow: var(--frame-shadow);
+        padding: 0.7rem 0.85rem 0.85rem;
+        display: flex;
+        flex-direction: column;
+      }
+      .panel.tight {
+        max-height: 14rem;
+        overflow: auto;
+        flex: 1 1 auto;
+      }
+      .panel.hall-teaser {
+        border-color: var(--border-strong);
+        background: var(--card-sheen);
+        box-shadow: 0 0 0 1px var(--card-ring), 0 10px 28px rgba(0, 0, 0, 0.4);
+        flex: 0 0 auto;
+      }
+      .panel.hall-teaser h2 {
+        font-size: 0.82rem;
+        letter-spacing: 0.16em;
+      }
+      .hall-teaser-link {
+        margin-top: 0.4rem;
+        font-family: Cinzel, serif;
+        font-size: 0.65rem;
+        letter-spacing: 0.12em;
+      }
+      .hall-teaser-link a {
+        color: var(--gold);
+        text-decoration: none;
+      }
+      .hall-teaser-link a:hover { text-decoration: underline; }
+      .levelers-panel .players {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.45rem;
+      }
+      @media (max-width: 900px) {
+        .levelers-panel .players { grid-template-columns: 1fr; }
+      }
+      .panel h2 {
+        margin: 0 0 0.55rem;
+        font-family: Cinzel, serif;
+        font-size: var(--h2-size);
+        letter-spacing: var(--h2-track);
+        color: var(--gold);
+        text-align: center;
+        font-weight: 600;
+      }
+      .panel h2::after {
+        content: "";
+        display: block;
+        width: min(8rem, 40%);
+        height: 1px;
+        margin: 0.35rem auto 0;
+        background: linear-gradient(90deg, transparent, var(--gold), transparent);
+        opacity: 0.7;
+      }
+
+      .players {
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+      }
+      .player {
+        display: grid;
+        grid-template-columns: 8px 1fr;
+        gap: 0.45rem;
+        padding: 0.4rem 0.5rem;
+        border: 1px solid rgba(201, 162, 74, 0.28);
+        background: var(--panel-inset);
+      }
+      .player:last-child { border-bottom: 1px solid rgba(201, 162, 74, 0.28); }
+      .class-bar { background: var(--gold-deep); }
+      .pname {
+        font-family: Cinzel, serif;
+        font-weight: 700;
+        font-size: 0.95rem;
+        letter-spacing: 0.03em;
+        line-height: 1.2;
+        word-break: break-word;
+      }
+      .pmeta {
+        margin-top: 0.1rem;
+        font-size: 0.88rem;
+        color: var(--ink-dim);
+        line-height: 1.3;
+      }
+      .pmeta .lvl { color: var(--gold); font-family: Cinzel, serif; }
+      .plast {
+        margin-top: 0.25rem;
+        font-size: 0.92rem;
+        color: rgba(185, 167, 132, 0.85);
+        font-style: italic;
+      }
+      .pstats {
+        margin-top: 0.45rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.25rem;
+        font-family: Cinzel, serif;
+        font-size: 0.88rem;
+        letter-spacing: 0.06em;
+        color: var(--ink-dim);
+      }
+      .pstats b {
+        color: var(--ink);
+        font-size: 1.15rem;
+        margin-right: 0.25rem;
+      }
+      .tags { margin-top: 0.4rem; display: flex; gap: 0.35rem; flex-wrap: wrap; }
+      .tag {
+        font-family: Cinzel, serif;
+        font-size: 0.65rem;
+        letter-spacing: 0.12em;
+        padding: 0.18rem 0.4rem;
+        border: 1px solid rgba(201, 162, 74, 0.4);
+        color: var(--online);
+      }
+      .tag.off { color: var(--offline); }
+      .tag.dead { color: var(--death); }
+      .tag.party { color: var(--party); }
+      .tag.dungeon { color: var(--dungeon); }
+
+      .feed, .records {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .evt {
+        padding: 0.55rem 0.7rem;
+        border-left: 4px solid var(--gold);
+        background: var(--panel-inset);
+        border: 1px solid rgba(201, 162, 74, 0.28);
+        border-left-width: 4px;
+      }
+      .evt .k {
+        font-family: Cinzel, serif;
+        font-size: 0.65rem;
+        letter-spacing: 0.14em;
+        color: var(--gold);
+        margin-bottom: 0.15rem;
+      }
+      .evt .t {
+        font-size: 1.05rem;
+        line-height: 1.25;
+      }
+      .evt.DING { border-left-color: var(--ding); }
+      .evt.DING .k { color: var(--ding); }
+      .evt.DEATH { border-left-color: var(--death); }
+      .evt.DEATH .k { color: var(--death); }
+      .evt.LOOT { border-left-color: #5b8fd9; }
+      .evt.LOOT .k { color: #8eb6ef; }
+      .loot-link { text-decoration: none; }
+      .loot-link.rare { color: #5b8fd9; }
+      .loot-link.epic { color: #c45dff; }
+      .loot-link:hover { text-decoration: underline; }
+      .evt.PVP { border-left-color: var(--pvp); }
+      .evt.PVP .k { color: var(--pvp); }
+      .evt.DUNGEON { border-left-color: var(--dungeon); }
+      .evt.DUNGEON .k { color: var(--dungeon); }
+      .evt.PARTY { border-left-color: var(--party); }
+      .evt.ZONE { border-left-color: var(--zone); }
+      .evt.MOMENT { border-left-color: var(--gold); background: var(--panel-raised); }
+      .evt.MOMENT .k { color: var(--gold); }
+      .ptags { margin-top: 0.35rem; display: flex; gap: 0.35rem; flex-wrap: wrap; }
+      .ptag {
+        font-family: Cinzel, serif;
+        font-size: 0.62rem;
+        letter-spacing: 0.14em;
+        color: var(--input-bg);
+        background: var(--gold);
+        padding: 0.12rem 0.4rem;
+      }
+
+      .rec {
+        padding: 0.7rem 0.8rem;
+        border: 1px solid rgba(201, 162, 74, 0.45);
+        background: var(--panel-raised);
+        font-size: clamp(1.15rem, 1.6vw, 1.45rem);
+        line-height: 1.2;
+      }
+      .rec .lbl {
+        font-family: Cinzel, serif;
+        font-size: clamp(0.72rem, 1vw, 0.9rem);
+        letter-spacing: 0.16em;
+        color: var(--gold);
+        margin-bottom: 0.2rem;
+      }
+
+      .empty {
+        color: var(--ink-dim);
+        font-style: italic;
+        text-align: center;
+        padding: 1.5rem 1rem;
+        font-size: 1.15rem;
+      }
+
+      .c-PRIEST .class-bar { background: #f0ebe3; }
+      .c-ROGUE .class-bar { background: #fff569; }
+      .c-WARRIOR .class-bar { background: #c79c6e; }
+      .c-MAGE .class-bar { background: #69ccf0; }
+      .c-HUNTER .class-bar { background: #abd473; }
+      .c-WARLOCK .class-bar { background: #9482c9; }
+      .c-DRUID .class-bar { background: #ff7d0a; }
+      .c-PALADIN .class-bar { background: #f58cba; }
+      .c-SHAMAN .class-bar { background: #0070de; }
+
+      .trajectory { padding: 0.45rem 0.75rem 0.55rem; flex: 1 1 auto; }
+      .trajectory h2 { margin-bottom: 0.2rem; }
+      .honesty-chip {
+        display: inline-block;
+        font-family: Cinzel, serif;
+        font-size: 0.55rem;
+        letter-spacing: 0.14em;
+        color: var(--ink-dim);
+        border: 1px solid rgba(201, 162, 74, 0.35);
+        padding: 0.1rem 0.35rem;
+        margin-left: 0.35rem;
+        vertical-align: middle;
+      }
+      .ach-panel { margin-top: 0.15rem; }
+      .ach-note {
+        text-align: center;
+        color: var(--ink-dim);
+        font-style: italic;
+        font-size: 0.9rem;
+        margin: -0.2rem 0 0.55rem;
+      }
+      .ach-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
+        gap: 0.45rem;
+      }
+      .ach-card {
+        text-align: left;
+        background: var(--panel-inset);
+        border: 1px solid rgba(201, 162, 74, 0.4);
+        padding: 0.5rem 0.55rem 0.55rem;
+        cursor: pointer;
+        color: inherit;
+        font: inherit;
+        width: 100%;
+      }
+      .ach-card:hover { border-color: var(--gold); }
+      .ach-card .t {
+        font-family: Cinzel, serif;
+        font-size: 0.62rem;
+        letter-spacing: 0.1em;
+        color: var(--gold);
+      }
+      .ach-card .lead {
+        margin-top: 0.2rem;
+        font-size: 1.02rem;
+        line-height: 1.2;
+      }
+      .ach-card .lead b { color: var(--ink); }
+      .ach-card .meta {
+        margin-top: 0.15rem;
+        color: var(--ink-dim);
+        font-size: 0.82rem;
+      }
+      .ach-card.open .lead { color: var(--ink-dim); font-style: italic; font-size: 0.92rem; }
+      .ach-modal {
+        position: fixed; inset: 0; z-index: 40;
+        background: rgba(0, 0, 0, 0.72);
+        display: flex; align-items: center; justify-content: center;
+        padding: 1rem;
+      }
+      .ach-modal[hidden] { display: none !important; }
+      .ach-modal-card {
+        width: min(32rem, 100%);
+        max-height: min(85vh, 40rem);
+        overflow: auto;
+        background: var(--panel-solid);
+        border: 1px solid rgba(201, 162, 74, 0.65);
+        padding: 1rem 1.1rem 1.15rem;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.65);
+        position: relative;
+      }
+      .ach-modal-card h2 {
+        margin: 0.2rem 0 0.35rem;
+        font-family: Cinzel, serif;
+        color: var(--gold);
+        letter-spacing: 0.1em;
+        font-size: 1.05rem;
+        text-align: center;
+      }
+      .ach-modal-card .eyebrow {
+        text-align: center;
+        font-family: Cinzel, serif;
+        font-size: 0.58rem;
+        letter-spacing: 0.16em;
+        color: var(--ink-dim);
+      }
+      .ach-blurb {
+        text-align: center;
+        color: var(--ink-dim);
+        font-style: italic;
+        margin: 0 0 0.75rem;
+        font-size: 0.95rem;
+      }
+      .ach-close {
+        position: absolute; top: 0.55rem; right: 0.55rem;
+        background: transparent;
+        border: 1px solid rgba(201, 162, 74, 0.4);
+        color: var(--ink-dim);
+        font-family: Cinzel, serif;
+        font-size: 0.58rem;
+        letter-spacing: 0.1em;
+        padding: 0.2rem 0.4rem;
+        cursor: pointer;
+      }
+      .ach-row {
+        display: grid;
+        grid-template-columns: 2rem 1fr auto;
+        gap: 0.45rem;
+        align-items: baseline;
+        padding: 0.4rem 0.15rem;
+        border-bottom: 1px solid rgba(201, 162, 74, 0.18);
+      }
+      .ach-row:last-child { border-bottom: 0; }
+      .ach-row.lead { background: rgba(201, 162, 74, 0.1); }
+      .ach-row .place { font-family: Cinzel, serif; color: var(--gold); }
+      .ach-row .who a { color: inherit; text-decoration: none; }
+      .ach-row .who a:hover { color: var(--gold); }
+      .ach-row .val { font-family: Cinzel, serif; color: var(--ink); }
+      .ach-row .gap { display: block; color: var(--ink-dim); font-size: 0.78rem; font-style: italic; }
+      .traj-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem 0.85rem;
+        justify-content: center;
+        font-family: Cinzel, serif;
+        font-size: 0.62rem;
+        letter-spacing: 0.08em;
+        color: var(--ink-dim);
+        margin-bottom: 0.35rem;
+      }
+      .traj-legend .lg {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.15rem 0.4rem 0.15rem 0.25rem;
+        border: 1px solid var(--border);
+        background: var(--panel-inset);
+      }
+      .traj-legend .lg.lead {
+        border-color: var(--border-strong);
+        color: var(--ink);
+      }
+      .traj-legend .lg b {
+        font-size: 0.7rem;
+        color: var(--gold);
+        min-width: 0.85rem;
+        text-align: center;
+      }
+      .traj-legend .lg em { font-style: normal; color: var(--ink); }
+      .traj-legend .lg .lv { color: var(--gold); letter-spacing: 0.04em; }
+      .traj-legend i {
+        width: 0.55rem;
+        height: 0.55rem;
+        display: inline-block;
+        border: 1px solid rgba(0, 0, 0, 0.35);
+      }
+      .traj-plot { position: relative; }
+      .traj-plot svg { width: 100%; height: 11.5rem; display: block; }
+      .traj-well {
+        fill: rgba(0, 0, 0, 0.22);
+        stroke: var(--border);
+        stroke-width: 1;
+      }
+      .traj-grid { stroke: rgba(232, 197, 106, 0.14); stroke-width: 1; }
+      .traj-grid-v { stroke: rgba(232, 197, 106, 0.08); stroke-width: 1; }
+      .traj-axis {
+        fill: var(--ink-dim);
+        font-size: 11px;
+        font-family: Cinzel, serif;
+      }
+      .traj-goal {
+        stroke: var(--gold);
+        stroke-width: 1.2;
+        stroke-dasharray: 5 4;
+        opacity: 0.55;
+      }
+      .traj-goal-label {
+        fill: var(--gold);
+        font-size: 11px;
+        font-family: Cinzel, serif;
+        letter-spacing: 0.08em;
+      }
+      .traj-place {
+        fill: #0a0a0a;
+        font-size: 11px;
+        font-family: Cinzel, serif;
+        font-weight: 700;
+      }
+      .traj-end-name {
+        fill: var(--ink);
+        font-size: 11px;
+        font-family: Cinzel, serif;
+        letter-spacing: 0.04em;
+      }
+      .traj-tip {
+        position: absolute;
+        transform: translate(-50%, -100%);
+        min-width: 9rem;
+        max-width: 16rem;
+        padding: 0.35rem 0.55rem;
+        background: var(--panel-solid);
+        border: 1px solid var(--border-strong);
+        color: var(--ink);
+        font-size: 0.95rem;
+        line-height: 1.25;
+        pointer-events: none;
+        z-index: 3;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+      }
+      .traj-tip .who { font-family: Cinzel, serif; color: var(--gold); letter-spacing: 0.06em; font-size: 0.78rem; }
+      .traj-tip .mk { color: var(--gold); font-style: italic; margin-top: 0.15rem; }
+
+      @media (max-width: 960px) {
+        .control-room,
+        .below-fold { grid-template-columns: 1fr; }
+        .panel.tight { max-height: none; }
+        .live-meta { text-align: left; }
+        .live-meta .nav { justify-content: flex-start; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="chrome">
+        <div class="brand-block">
+          <a class="brand-lockup" href="/" aria-label="Forever LAN home">
+            <img class="brand-logo" src="/public/wow-forever-logo-web.png?v=1" alt="World of Warcraft: Forever" width="720" height="609" />
+            <span class="brand-lan">LAN</span>
+          </a>
+          <p class="sub" id="subtitle">Vanilla leveling weekend · race to the beta cap.</p>
+        </div>
+        <div class="live-meta">
+          <nav class="nav">
+            <a class="on" href="/">LIVE</a>
+            <a href="/characters">CHARACTERS</a>
+            <a href="/professions">PROFESSIONS</a>
+            <a href="/timeline">TIMELINE</a>
+            <a href="/zones">ZONES</a>
+            <a href="/deaths">DEATHS</a>
+            <a href="/wrap">WRAP</a>
+            <a href="/diagnostics" title="Host collection status">DIAG</a>
+          </nav>
+          <span><span class="dot" id="dot"></span>LINK</span>
+          <strong id="linkState">…</strong>
+          <div style="margin-top:0.45rem" id="sessionMeta"></div>
+        </div>
+      </header>
+
+      <section class="board-status" id="boardStatus" aria-live="polite">
+        <span class="pulse" aria-hidden="true"></span>
+        <span id="boardStatusText">Loading weekend log…</span>
+      </section>
+      <section class="right-now" id="sinceLook" aria-label="Since you last looked" hidden></section>
+      <section class="attention" id="attention" aria-label="Needs attention" hidden></section>
+      <section class="broadcast" id="broadcast" aria-live="polite">
+        <div class="eyebrow">WHAT JUST HAPPENED</div>
+        <div class="line" id="headlineLine">THE RACE TO 60</div>
+        <div class="subline" id="headlineSub" hidden></div>
+      </section>
+      <section class="rivalry" id="rivalry" hidden></section>
+      <section class="right-now" id="rightNow" aria-label="Right now"></section>
+
+      <section class="race-strip" id="race" aria-label="Race to level cap">
+        <div class="empty" style="width:100%">Loading the race board…</div>
+      </section>
+
+      <div class="control-room" aria-label="Race story">
+        <section class="panel trajectory" aria-label="Race trajectory">
+          <h2>RACE TRAJECTORY <span class="honesty-chip">COUNTED</span></h2>
+          <div id="trajectory"><div class="empty">The race line appears after the first dings.</div></div>
+        </section>
+        <div class="control-story">
+          <section class="panel tight" aria-label="Recent moments">
+            <h2>RECENT <span class="honesty-chip">LOGGED</span></h2>
+            <div class="feed" id="feed"><div class="empty">The leveling story starts when someone dings…</div></div>
+          </section>
+          <section class="panel hall-teaser" aria-label="Hall of Shame and Fame teaser">
+            <h2>HALL OF SHAME / FAME <span class="honesty-chip">COUNTED</span></h2>
+            <div id="hallTeaser"><div class="empty">Awards appear as the weekend gets weird.</div></div>
+          </section>
+        </div>
+      </div>
+
+      <div class="obs" id="obs" aria-live="polite"></div>
+
+      <div class="below-fold">
+        <section class="panel ach-panel" aria-label="Achievement race">
+          <h2>ACHIEVEMENT RACE <span class="honesty-chip">COUNTED</span></h2>
+          <p class="ach-note">Who’s leading each weekend trophy — click for full standings.</p>
+          <div class="ach-grid" id="achievements"><div class="empty">Trophies appear as the weekend unfolds.</div></div>
+        </section>
+        <section class="panel" aria-label="Trophies">
+          <h2>TROPHIES <span class="honesty-chip">COUNTED</span></h2>
+          <div class="records" id="records"><div class="empty">No trophies yet — start leveling.</div></div>
+        </section>
+      </div>
+    </div>
+
+    <div id="achModal" class="ach-modal" hidden>
+      <div class="ach-modal-card" role="dialog" aria-modal="true" aria-labelledby="achModalTitle">
+        <button type="button" class="ach-close" id="achClose">CLOSE</button>
+        <div class="eyebrow" id="achModalHonesty">COUNTED</div>
+        <h2 id="achModalTitle">…</h2>
+        <p class="ach-blurb" id="achModalBlurb"></p>
+        <div id="achModalStandings"></div>
+      </div>
+    </div>
+    <script src="/public/faction-theme.js?v=faction1"></script>
+    <script src="/public/race-intel.js?v=prize1"></script>
+    <script src="/public/loot-links.js?v=l1"></script>
+    <script>
+      const raceEl = document.getElementById("race");
+      const feedEl = document.getElementById("feed");
+      const recordsEl = document.getElementById("records");
+      const rightNowEl = document.getElementById("rightNow");
+      const obsEl = document.getElementById("obs");
+      const headlineLine = document.getElementById("headlineLine");
+      const headlineSub = document.getElementById("headlineSub");
+      const rivalryEl = document.getElementById("rivalry");
+      const linkState = document.getElementById("linkState");
+      const dot = document.getElementById("dot");
+      const sessionMeta = document.getElementById("sessionMeta");
+      const subtitle = document.getElementById("subtitle");
+      const boardStatusEl = document.getElementById("boardStatus");
+      const boardStatusText = document.getElementById("boardStatusText");
+
+      let obsIndex = 0;
+      let obsLines = [];
+      let obsTimer = null;
+      /** Last painted board with players — never blank it with a boot/rebuild empty snapshot. */
+      let lastGoodLan = null;
+      let pollTimer = null;
+      let pollMs = 8000;
+      let sseLive = false;
+      let lanEtag = "";
+
+      function setBoardStatus(msg) {
+        if (!boardStatusEl) return;
+        if (!msg) {
+          boardStatusEl.hidden = true;
+          if (boardStatusText) boardStatusText.textContent = "";
+          return;
+        }
+        boardStatusEl.hidden = false;
+        if (boardStatusText) boardStatusText.textContent = msg;
+      }
+
+      function boardPlayerCount(lan) {
+        return Array.isArray(lan?.players) ? lan.players.length : 0;
+      }
+
+      function isTransientEmpty(lan) {
+        if (!lan) return true;
+        if (boardPlayerCount(lan) > 0) return false;
+        return !!(
+          lan.meta?.bootstrapping ||
+          lan.meta?.ready === false ||
+          lan.meta?.catch_up_active ||
+          lan.meta?.board_provisional
+        );
+      }
+
+      function shouldRetainLastGood(incoming) {
+        if (!lastGoodLan || boardPlayerCount(lastGoodLan) === 0) return false;
+        if (boardPlayerCount(incoming) > 0) return false;
+        // Empty board while host is still booting/rebuilding — keep the warm paint.
+        return isTransientEmpty(incoming);
+      }
+
+      function setPollInterval(ms) {
+        if (pollMs === ms && pollTimer) return;
+        pollMs = ms;
+        if (pollTimer) clearInterval(pollTimer);
+        pollTimer = setInterval(pullLan, pollMs);
+      }
+
+      function applyLan(lan) {
+        if (!lan) return;
+        if (shouldRetainLastGood(lan)) {
+          if (lan.meta?.catch_up_active) setBoardStatus("Rebuilding board from catch-up…");
+          else setBoardStatus("Loading weekend log…");
+          setPollInterval(2000);
+          return;
+        }
+        if (boardPlayerCount(lan) > 0) lastGoodLan = lan;
+        if (lan.meta?.bootstrapping || lan.meta?.ready === false) {
+          setBoardStatus(
+            boardPlayerCount(lan) > 0
+              ? "Refreshing board from weekend log…"
+              : "Loading weekend log…"
+          );
+          setPollInterval(2000);
+        } else if (lan.meta?.catch_up_active) {
+          setBoardStatus("Catching up Friday → Saturday…");
+          setPollInterval(3000);
+        } else {
+          setBoardStatus("");
+          setPollInterval(sseLive ? 30000 : 8000);
+        }
+        render(lan);
+      }
+
+      function esc(s) {
+        return String(s ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+      }
+      function fmtDuration(totalSeconds) {
+        const s = Math.max(0, Math.round(Number(totalSeconds) || 0));
+        if (s < 60) return `${s}s`;
+        const m = Math.floor(s / 60);
+        const rem = s % 60;
+        if (m < 60) return rem ? `${m}m ${rem}s` : `${m}m`;
+        const h = Math.floor(m / 60);
+        const rm = m % 60;
+        return rm ? `${h}h ${rm}m` : `${h}h`;
+      }
+      function tickCorpseTimers() {
+        const now = Date.now();
+        document.querySelectorAll("[data-corpse-start]").forEach((el) => {
+          const start = new Date(el.getAttribute("data-corpse-start")).getTime();
+          if (!Number.isFinite(start)) return;
+          const secs = Math.max(0, Math.floor((now - start) / 1000));
+          const b = el.querySelector("b");
+          if (b) b.textContent = fmtDuration(secs);
+        });
+        document.querySelectorAll("[data-food-left]").forEach((el) => {
+          const left0 = Number(el.getAttribute("data-food-left"));
+          const at = Number(el.getAttribute("data-food-at"));
+          if (!Number.isFinite(left0) || !Number.isFinite(at)) return;
+          const secs = Math.max(0, Math.floor(left0 - (now - at) / 1000));
+          const b = el.querySelector("b");
+          if (b) b.textContent = fmtDuration(secs);
+        });
+      }
+      setInterval(tickCorpseTimers, 1000);
+      function honestyChip(raw) {
+        if (window.ForeverLanIntel?.honestyChip) return ForeverLanIntel.honestyChip(raw);
+        const k = String(raw || "").trim().toLowerCase();
+        if (k === "observed") return "LOGGED";
+        if (k === "derived") return "COUNTED";
+        if (k === "inferred") return "GUESSED";
+        return String(raw || "").toUpperCase();
+      }
+      function classSlug(c) {
+        return "c-" + String(c || "").replace(/[^a-zA-Z]/g, "");
+      }
+      function clock(iso) {
+        if (!iso) return "";
+        try {
+          const d = new Date(iso);
+          if (!Number.isFinite(d.getTime())) return "";
+          const tz = window.__foreverLanTz;
+          const dayOpts = { weekday: "short" };
+          const timeOpts = { hour12: false, hour: "2-digit", minute: "2-digit" };
+          if (tz) {
+            dayOpts.timeZone = tz;
+            timeOpts.timeZone = tz;
+          }
+          const day = d.toLocaleDateString("en-GB", dayOpts);
+          const time = d.toLocaleTimeString("en-GB", timeOpts);
+          return `${day} ${time}`;
+        } catch {
+          return "";
+        }
+      }
+      function relative(iso) {
+        if (!iso) return "";
+        const t = new Date(iso).getTime();
+        if (!Number.isFinite(t)) return "";
+        const sec = Math.max(0, Math.round((Date.now() - t) / 1000));
+        if (sec < 45) return "just now";
+        if (sec < 3600) return Math.round(sec / 60) + "m ago";
+        return Math.round(sec / 3600) + "h ago";
+      }
+
+      function rotateObs() {
+        if (!obsLines.length) {
+          obsEl.textContent = "";
+          return;
+        }
+        obsEl.textContent = obsLines[obsIndex % obsLines.length];
+        obsIndex += 1;
+      }
+
+      let sinceShown = false;
+      let sincePlayers = [];
+      function renderSince(lan) {
+        const players = Array.isArray(lan?.players) ? lan.players : [];
+        sincePlayers = players;
+        const el = document.getElementById("sinceLook");
+        if (!el || sinceShown) return;
+        sinceShown = true;
+        const key = "foreverlan-last-look";
+        let prev = null;
+        try { prev = JSON.parse(localStorage.getItem(key) || "null"); } catch { prev = null; }
+        const sinceIso = prev?.at ? new Date(prev.at).toISOString() : null;
+        const moments = Array.isArray(lan.lookback_moments) ? lan.lookback_moments : [];
+        const filtered = sinceIso
+          ? moments.filter((m) => !m.ts || new Date(m.ts).getTime() >= new Date(sinceIso).getTime())
+          : moments;
+        const lines = [];
+        for (const m of filtered.slice(0, 5)) {
+          if (m.text) lines.push(m.text);
+        }
+        // Fallback: level/death deltas if server moments empty
+        if (!lines.length && prev?.snap) {
+          const snap = {};
+          for (const p of players) {
+            if (!p.character) continue;
+            snap[p.character] = { level: p.level || 0, deaths: p.deaths || 0, zone: p.zone || "" };
+          }
+          for (const [name, now] of Object.entries(snap)) {
+            const was = prev.snap[name];
+            if (!was) continue;
+            const dLvl = (now.level || 0) - (was.level || 0);
+            const dDeath = (now.deaths || 0) - (was.deaths || 0);
+            if (dLvl > 0) lines.push(`${name} +${dLvl} level${dLvl > 1 ? "s" : ""}`);
+            if (dDeath > 0) lines.push(`${name} +${dDeath} death${dDeath > 1 ? "s" : ""}`);
+          }
+        }
+        if (lan.race_pulse?.headline && lan.race_pulse.kind !== "WAITING" && lan.race_pulse.kind !== "NEW_LEADER") {
+          if (!lines.some((l) => l === lan.race_pulse.headline)) {
+            lines.unshift(lan.race_pulse.headline);
+          }
+        }
+        if (!lines.length) {
+          el.hidden = false;
+          el.innerHTML = `<div class="eyebrow">SINCE YOU LAST LOOKED <button type="button" id="sinceDismiss" style="float:right;background:transparent;border:1px solid rgba(201,162,74,0.35);color:var(--ink-dim);font-family:Cinzel,serif;font-size:0.55rem;letter-spacing:0.08em;padding:0.15rem 0.35rem;cursor:pointer">DISMISS</button></div><div class="since-lines"><div>Nothing major — the board is quiet.</div></div>`;
+        } else {
+          el.hidden = false;
+          el.innerHTML = `<div class="eyebrow">SINCE YOU LAST LOOKED <button type="button" id="sinceDismiss" style="float:right;background:transparent;border:1px solid rgba(201,162,74,0.35);color:var(--ink-dim);font-family:Cinzel,serif;font-size:0.55rem;letter-spacing:0.08em;padding:0.15rem 0.35rem;cursor:pointer">DISMISS</button></div><div class="since-lines">${lines.slice(0, 5).map((l) => `<div>${esc(l)}</div>`).join("")}</div>`;
+        }
+        document.getElementById("sinceDismiss")?.addEventListener("click", () => {
+          el.hidden = true;
+        });
+      }
+      window.addEventListener("pagehide", () => {
+        const snap = {};
+        for (const p of sincePlayers) {
+          if (!p.character) continue;
+          snap[p.character] = { level: p.level || 0, deaths: p.deaths || 0, zone: p.zone || "" };
+        }
+        localStorage.setItem("foreverlan-last-look", JSON.stringify({ at: Date.now(), snap }));
+      });
+
+      function render(lan) {
+        if (!lan) return;
+        if (lan.meta?.display_time_zone) window.__foreverLanTz = lan.meta.display_time_zone;
+        const players = Array.isArray(lan.players) ? lan.players : [];
+        const totals = lan.totals || {};
+        const levelCap = Math.max(1, Math.min(60, Number(lan.meta?.level_cap) || 60));
+        const raceLabel = lan.meta?.race_label || `race to ${levelCap}`;
+        const raceTitle = `THE RACE TO ${levelCap}`;
+        const weekendSub = `Vanilla leveling weekend · ${raceLabel}`;
+        const toCap =
+          totals.highest_level != null ? Math.max(0, levelCap - totals.highest_level) : null;
+
+        if (lan.weekend?.label) {
+          sessionMeta.textContent = lan.weekend.label;
+          if (lan.session_id) sessionMeta.textContent += ` · ${lan.session_id}`;
+        } else if (lan.session_id) {
+          sessionMeta.textContent = lan.session_id;
+        } else {
+          sessionMeta.textContent = "";
+        }
+        const ingest = lan.meta?.last_ingest_at;
+        const eventAt = lan.meta?.last_event_at;
+        if (ingest || eventAt) {
+          const bits = [];
+          if (ingest) {
+            const ageSec = (Date.now() - new Date(ingest).getTime()) / 1000;
+            const stale = Number.isFinite(ageSec) && ageSec > 600;
+            bits.push(`ingest ${relative(ingest)}${stale ? " · quiet" : ""}`);
+          }
+          if (eventAt) bits.push(`game ${clock(eventAt)}`);
+          sessionMeta.textContent += (sessionMeta.textContent ? "\n" : "") + bits.join(" · ");
+          sessionMeta.style.whiteSpace = "pre-line";
+        }
+
+        renderSince(lan);
+        obsLines = Array.isArray(lan.observations) ? lan.observations : [];
+        if (obsLines.length && !obsTimer) {
+          rotateObs();
+          obsTimer = setInterval(rotateObs, 8000);
+        } else if (!obsLines.length) {
+          obsEl.textContent = "";
+        } else {
+          rotateObs();
+        }
+
+        // Attention — who needs eyes right now (fallen / chase)
+        const attentionEl = document.getElementById("attention");
+        if (attentionEl) {
+          const attn = [];
+          const fallen = players.filter((p) => p.dead);
+          for (const p of fallen.slice(0, 3)) {
+            const who = String(p.character || "");
+            const recap = p.last_death_summary ? ` · ${p.last_death_summary}` : "";
+            attn.push(
+              `<span class="attn-death"><b>${esc(who)}</b> fallen${esc(recap)}</span>`
+            );
+          }
+          const leveled = players
+            .filter((p) => p.level != null)
+            .slice()
+            .sort((a, b) => (b.level || 0) - (a.level || 0) || String(a.character).localeCompare(String(b.character)));
+          if (leveled.length >= 2) {
+            const chase = leveled
+              .slice(1)
+              .filter((p) => (p.gap_to_leader || 0) > 0)
+              .sort((a, b) => (a.gap_to_leader || 99) - (b.gap_to_leader || 99))[0];
+            if (chase && chase.gap_to_leader <= 3) {
+              attn.push(
+                `<span class="attn-chase"><b>${esc(chase.character)}</b> ${esc(chase.gap_to_leader)} behind — chasing</span>`
+              );
+            }
+          }
+          if (attn.length) {
+            attentionEl.hidden = false;
+            attentionEl.innerHTML = `<span class="lbl">WATCH</span>${attn.join('<span class="sep" style="opacity:0.35">·</span>')}`;
+          } else {
+            attentionEl.hidden = true;
+            attentionEl.innerHTML = "";
+          }
+        }
+
+        function setHero(line, sub) {
+          headlineLine.textContent = line || raceTitle;
+          if (headlineSub) {
+            if (sub) {
+              headlineSub.hidden = false;
+              headlineSub.textContent = sub;
+            } else {
+              headlineSub.hidden = true;
+              headlineSub.textContent = "";
+            }
+          }
+        }
+
+        if (lan.headline?.text) {
+          setHero(lan.headline.text, lan.headline.subline || null);
+          subtitle.textContent = weekendSub;
+        } else if (lan.commentary) {
+          setHero(lan.commentary, null);
+          subtitle.textContent = weekendSub;
+        } else if (obsLines[0]) {
+          setHero(String(obsLines[0]).toUpperCase(), null);
+          subtitle.textContent = weekendSub;
+        } else if (totals.in_dungeon && totals.dungeon_name) {
+          setHero("DUNGEON XP — " + String(totals.dungeon_name).toUpperCase(), null);
+          subtitle.textContent = "In dungeon — " + totals.dungeon_name;
+        } else {
+          setHero(raceTitle, weekendSub);
+          subtitle.textContent = weekendSub;
+        }
+        let pulseEl = document.getElementById("racePulse");
+        if (!pulseEl && headlineLine?.parentElement) {
+          pulseEl = document.createElement("div");
+          pulseEl.id = "racePulse";
+          pulseEl.className = "race-pulse";
+          headlineLine.parentElement.appendChild(pulseEl);
+        }
+        if (pulseEl) {
+          const rp = lan.race_pulse;
+          if (rp?.headline && rp.kind !== "WAITING") {
+            pulseEl.hidden = false;
+            pulseEl.innerHTML = `${esc(rp.headline)}${rp.detail ? `<span class="sub">${esc(rp.detail)}</span>` : ""}`;
+          } else {
+            pulseEl.hidden = true;
+            pulseEl.innerHTML = "";
+          }
+        }
+
+        if (lan.rivalry && lan.rivalry.label) {
+          rivalryEl.hidden = false;
+          rivalryEl.innerHTML = `<span class="vs">${esc(lan.rivalry.label)}</span><span class="meta">${esc(
+            lan.rivalry.detail || ""
+          )}</span>`;
+        } else {
+          rivalryEl.hidden = true;
+          rivalryEl.innerHTML = "";
+        }
+
+        // Right now — Wrap-style weekend strip + live control-room spice
+        const rn = [];
+        const online = totals.online_count ?? 0;
+        const levelers = totals.player_count ?? players.length;
+        rn.push(`<span><b>${esc(online)}</b> online</span>`);
+        if (levelers > 0) rn.push(`<span><b>${esc(levelers)}</b> levelers</span>`);
+        if (totals.highest_level != null) {
+          rn.push(`<span>leader <b>${esc(totals.highest_level)}</b>/${levelCap}</span>`);
+          if (toCap != null && toCap > 0) rn.push(`<span><b>${esc(toCap)}</b> to ${levelCap}</span>`);
+          else if (toCap === 0) rn.push(`<span><b>${levelCap}</b> reached</span>`);
+        }
+        if (totals.average_level != null)
+          rn.push(`<span>avg <b>${esc(Math.round(totals.average_level))}</b></span>`);
+        if (totals.total_levels_gained > 0)
+          rn.push(`<span><b>+${esc(totals.total_levels_gained)}</b> dings</span>`);
+        if (totals.total_deaths > 0)
+          rn.push(`<span><b>${esc(totals.total_deaths)}</b> deaths</span>`);
+        const fallen = players.filter((p) => p.dead).length;
+        if (fallen > 0) rn.push(`<span><b>${esc(fallen)}</b> fallen</span>`);
+        const yards = totals.total_distance_yards || 0;
+        if (yards > 0) {
+          const m = Math.round(yards * 0.9144);
+          const walked = m < 1000 ? `${m} m` : `${(m / 1000).toFixed(2)} km`;
+          rn.push(`<span><b>${esc(walked)}</b> walked</span>`);
+        }
+        if (totals.total_jumps > 0)
+          rn.push(`<span><b>${esc(totals.total_jumps)}</b> jumps</span>`);
+        if (totals.total_corpse_run_seconds > 0)
+          rn.push(
+            `<span><b>${esc(fmtDuration(totals.total_corpse_run_seconds))}</b> corpse</span>`
+          );
+        if (totals.total_pvp_kills > 0)
+          rn.push(`<span><b>${esc(totals.total_pvp_kills)}</b> PvP</span>`);
+        const hotZone = (totals.zones || [])[0];
+        if (hotZone?.name) rn.push(`<span>hot <b>${esc(hotZone.name)}</b></span>`);
+        if (totals.in_instance_count > 0) {
+          rn.push(
+            `<span><b>${esc(totals.in_instance_count)}</b> in dungeon${
+              totals.dungeon_name ? ` · ${esc(totals.dungeon_name)}` : ""
+            }</span>`
+          );
+        } else if (totals.recent_pvp) {
+          rn.push("<span><b>world PvP</b></span>");
+        }
+        const pace = lan.meta?.race_ceiling?.pace_leader;
+        const paceLvl =
+          lan.meta?.race_ceiling?.pace_sunday_level ??
+          lan.meta?.race_ceiling?.theoretical_max_level;
+        if (pace?.levels_per_hour != null && paceLvl != null) {
+          rn.push(
+            `<span>pace <b>~L${esc(paceLvl)}</b> <span style="opacity:.7">${esc(pace.levels_per_hour)}/h</span></span>`
+          );
+        } else if (paceLvl != null) {
+          rn.push(`<span>pace <b>~L${esc(paceLvl)}</b></span>`);
+        }
+        rightNowEl.innerHTML = rn.join("");
+
+        // Race to beta cap — every known character; zone + status live on the cards
+        const ranked = players.slice();
+        if (!ranked.length) {
+          raceEl.innerHTML =
+            `<div class="empty" style="width:100%">Race to ${levelCap} starts when Forever sees a leveler…</div>`;
+        } else {
+          const leadLvl = ranked.find((p) => p.level != null)?.level;
+          raceEl.innerHTML = ranked
+            .map((p, i) => {
+              const pct =
+                p.level != null ? Math.min(100, Math.round((p.level / levelCap) * 100)) : 0;
+              const lvl =
+                p.level != null
+                  ? `${esc(p.level)}<span style="font-size:0.55em;opacity:0.7">/${levelCap}</span>`
+                  : '<span style="font-size:0.55em;opacity:0.7">—</span>';
+              const gained =
+                p.levels_gained > 0 ? `<div class="gained">+${p.levels_gained} this weekend</div>` : "";
+              let gap = "";
+              if (p.level != null && i === 0) {
+                const left = Math.max(0, levelCap - p.level);
+                gap =
+                  left > 0
+                    ? `<div class="gap">${left} to ${levelCap}</div>`
+                    : `<div class="gap">HIT ${levelCap}</div>`;
+              } else if (p.gap_to_leader != null && p.gap_to_leader > 0)
+                gap = `<div class="gap">${p.gap_to_leader} behind</div>`;
+              else if (p.level != null && p.level === leadLvl) gap = '<div class="gap">Tied</div>';
+              const place =
+                p.in_instance && p.instance_name
+                  ? p.instance_name
+                  : p.zone || "";
+              const zone = place ? `<div class="zone" title="${esc(place)}">${esc(place)}</div>` : "";
+              const fallenCls = p.dead ? " fallen" : "";
+              const cs = p.client_status || {};
+              const st = cs.status || (p.online ? "REPORTING" : "OFFLINE");
+              let statusCls = "";
+              let statusWord = "Offline";
+              if (p.dead) {
+                statusCls = "dead";
+                statusWord = "Fallen";
+              } else if (st === "REPORTING") {
+                statusCls = "on";
+                statusWord = "Reporting";
+              } else if (st === "CATCHING_UP") {
+                statusCls = "catchup";
+                statusWord = "Catching up";
+              } else if (st === "STALE") {
+                statusCls = "stale";
+                statusWord = "Stale";
+              } else {
+                statusWord = "Offline";
+              }
+              const statusBits = [statusWord];
+              if (p.in_party || (p.is_self && totals.in_group)) statusBits.push("Party");
+              const status = `<div class="status ${statusCls}">${statusBits
+                .map((s, idx) => (idx ? `<span class="sep">·</span>${esc(s)}` : esc(s)))
+                .join("")}</div>`;
+              const freshBits = [];
+              if (cs.host_ingest_label && cs.host_ingest_label !== "—") {
+                freshBits.push(`host ${cs.host_ingest_label}`);
+              }
+              if (cs.game_event_label && cs.game_event_label !== "—") {
+                freshBits.push(`game ${cs.game_event_label}`);
+              }
+              const freshness = freshBits.length
+                ? `<div class="freshness">${esc(freshBits.join(" · "))}</div>`
+                : "";
+              const corpse =
+                p.dead && p.corpse_run_started_at
+                  ? `<div class="corpse-live" data-corpse-start="${esc(p.corpse_run_started_at)}">CORPSE <b>—</b></div>`
+                  : "";
+              const recap =
+                p.dead && p.last_death_summary
+                  ? `<div class="recap">${esc(p.last_death_summary)}</div>`
+                  : "";
+              return `<a class="race-card ${i === 0 ? "lead" : ""}${fallenCls} ${classSlug(p.class)}" href="/characters?name=${encodeURIComponent(p.character)}${p.guid ? `&guid=${encodeURIComponent(p.guid)}` : ""}">
+                <div class="place">${i + 1}</div>
+                <div class="name">${esc(p.character)}</div>
+                <div class="lvl">${lvl}</div>
+                ${gained}
+                ${gap}
+                ${zone}
+                ${status}
+                ${freshness}
+                ${corpse}
+                ${recap}
+                <div class="bar"><span style="width:${pct}%"></span></div>
+              </a>`;
+            })
+            .join("");
+        }
+
+        // Chronicle — prioritize story events; ZONE only if sparse; drop repeat zone spam
+        const raw = (lan.activity || []).filter((a) =>
+          ["DING", "DEATH", "PVP", "DUNGEON", "PARTY", "ZONE", "MOMENT", "LOOT"].includes(a.kind)
+        );
+        const high = raw.filter((a) => a.kind !== "ZONE");
+        const seenZone = new Set();
+        const zones = raw
+          .filter((a) => a.kind === "ZONE")
+          .filter((a) => {
+            const key = `${a.character || ""}|${a.text || ""}`;
+            if (seenZone.has(key)) return false;
+            seenZone.add(key);
+            return true;
+          })
+          .slice(0, 2);
+        const activity = [...high, ...zones]
+          .sort((a, b) => new Date(b.ts) - new Date(a.ts))
+          .slice(0, 8);
+
+        if (!activity.length) {
+          feedEl.innerHTML = '<div class="empty">The leveling story starts when someone dings…</div>';
+        } else {
+          feedEl.innerHTML = activity
+            .map((a) => {
+              const voiced = a.announce || null;
+              let textHtml;
+              let subHtml = "";
+              if (a.kind === "LOOT" && a.wowhead_url && window.ForeverLanLoot) {
+                const link = ForeverLanLoot.lootLinkHtml(a);
+                const who = esc(a.character || "Someone");
+                const q = a.item_quality === 4 ? "Epic" : "blue";
+                textHtml = voiced?.compact
+                  ? esc(voiced.compact)
+                  : `${who} looted ${q} ${link}`;
+                if (voiced?.compact && link) {
+                  // Keep loot link discoverable under announcer line.
+                  textHtml = `${esc(voiced.compact)} · ${link}`;
+                }
+              } else if (voiced?.headline) {
+                textHtml = esc(voiced.headline);
+                if (voiced.subline) subHtml = `<span class="t-sub">${esc(voiced.subline)}</span>`;
+              } else {
+                textHtml = esc(a.text);
+              }
+              const body = `<div class="k">${esc(a.kind)} · ${esc(clock(a.ts))}</div><div class="t">${textHtml}${subHtml}</div>`;
+              if (a.kind === "LOOT" && a.wowhead_url) {
+                return `<div class="evt ${esc(a.kind)}">${body}</div>`;
+              }
+              if (a.character) {
+                return `<a class="evt ${esc(a.kind)}" href="/characters?name=${encodeURIComponent(a.character)}" style="text-decoration:none;color:inherit;display:block">${body}</a>`;
+              }
+              return `<div class="evt ${esc(a.kind)}">${body}</div>`;
+            })
+            .join("");
+        }
+
+        const records = (lan.records || []).filter((r) => r.title);
+        if (!records.length) {
+          recordsEl.innerHTML = '<div class="empty">No trophies yet — start leveling.</div>';
+        } else {
+          recordsEl.innerHTML = records
+            .slice(0, 5)
+            .map(
+              (r) =>
+                `<div class="rec"><div class="lbl">${esc(r.title)}</div>${esc(r.detail || r.label || "")}</div>`
+            )
+            .join("");
+        }
+
+        const hallTeaser = document.getElementById("hallTeaser");
+        if (hallTeaser) {
+          const shame = (lan.hall || []).filter((h) => h.shame).slice(0, 3);
+          const fun = shame.length ? shame : (lan.hall || []).slice(0, 3);
+          hallTeaser.innerHTML = fun.length
+            ? `${fun
+                .map(
+                  (h) =>
+                    `<div class="rec"><div class="lbl">${esc(h.title)}${
+                      h.honesty ? ` · ${esc(honestyChip(h.honesty))}` : ""
+                    }</div>${esc(h.detail || "")}</div>`
+                )
+                .join("")}<div class="hall-teaser-link"><a href="/wrap">FULL WRAP →</a></div>`
+            : `<div class="empty">Awards appear as the weekend gets weird.</div>`;
+        }
+
+        renderAchievements(lan.achievements || []);
+
+        tickCorpseTimers();
+        if (window.ForeverLanIntel) {
+          ForeverLanIntel.renderTrajectory(document.getElementById("trajectory"), lan.trajectory, {
+            levelCap,
+          });
+        }
+      }
+
+      let achCache = [];
+      function renderAchievements(list) {
+        const root = document.getElementById("achievements");
+        if (!root) return;
+        achCache = Array.isArray(list) ? list : [];
+        if (!achCache.length) {
+          root.innerHTML = '<div class="empty">Trophies appear as the weekend unfolds.</div>';
+          return;
+        }
+        root.innerHTML = achCache
+          .map((a, idx) => {
+            const open = !a.leader || a.leader.value <= 0 || a.open;
+            const lead = open
+              ? `<div class="lead">Still open — be the first</div>`
+              : `<div class="lead"><b>${esc(a.leader.character || a.leader.short)}</b> · ${esc(a.leader.value_text)}</div>`;
+            const meta = `<div class="meta">${esc(a.metric_label)} · ${esc(honestyChip(a.honesty || "derived"))}${
+              open ? "" : ` · ${esc(a.contested)} in the race · click standings`
+            }</div>`;
+            return `<button type="button" class="ach-card${open ? " open" : ""}" data-ach="${idx}">
+              <div class="t">${esc(a.title)}</div>
+              ${lead}
+              ${meta}
+            </button>`;
+          })
+          .join("");
+        root.querySelectorAll("[data-ach]").forEach((btn) => {
+          btn.onclick = () => openAchModal(Number(btn.dataset.ach));
+        });
+      }
+
+      function openAchModal(idx) {
+        const a = achCache[idx];
+        const modal = document.getElementById("achModal");
+        if (!a || !modal) return;
+        document.getElementById("achModalTitle").textContent = a.title;
+        document.getElementById("achModalBlurb").textContent = a.blurb || "";
+        document.getElementById("achModalHonesty").textContent = `${honestyChip(a.honesty || "derived")} · ${a.metric_label || "race"}`;
+        const rows = (a.standings || [])
+          .map((s) => {
+            const gap =
+              !s.leading && s.gap_to_leader > 0 && a.key !== "poorest"
+                ? `<span class="gap">${esc(String(s.gap_to_leader))} behind leader</span>`
+                : s.leading
+                  ? `<span class="gap">leading</span>`
+                  : "";
+            return `<div class="ach-row${s.leading ? " lead" : ""}">
+              <div class="place">${esc(s.place)}</div>
+              <div class="who"><a href="/characters?name=${encodeURIComponent(s.character)}">${esc(s.character || s.short)}</a>${gap}</div>
+              <div class="val">${esc(s.value_text)}</div>
+            </div>`;
+          })
+          .join("");
+        document.getElementById("achModalStandings").innerHTML =
+          rows || '<div class="empty">No standings yet.</div>';
+        modal.hidden = false;
+      }
+
+      document.getElementById("achClose")?.addEventListener("click", () => {
+        document.getElementById("achModal").hidden = true;
+      });
+      document.getElementById("achModal")?.addEventListener("click", (ev) => {
+        if (ev.target.id === "achModal") ev.currentTarget.hidden = true;
+      });
+
+      function pullLan() {
+        const headers = lanEtag ? { "If-None-Match": lanEtag } : {};
+        return fetch("/lan", { headers })
+          .then(async (r) => {
+            const next = r.headers.get("etag");
+            if (next) lanEtag = next;
+            if (r.status === 304) return;
+            applyLan(await r.json());
+          })
+          .catch(() => {});
+      }
+
+      pullLan();
+      setPollInterval(2000);
+
+      const es = new EventSource("/stream");
+      es.onopen = () => {
+        sseLive = true;
+        linkState.textContent = "LIVE";
+        dot.classList.add("on");
+        if (!lastGoodLan?.meta?.catch_up_active && lastGoodLan?.meta?.ready !== false) {
+          setPollInterval(30000);
+        }
+      };
+      es.onerror = () => {
+        sseLive = false;
+        linkState.textContent = "RECONNECTING";
+        dot.classList.remove("on");
+        setPollInterval(2000);
+        pullLan();
+      };
+      es.onmessage = (msg) => {
+        try {
+          const data = JSON.parse(msg.data);
+          if (data.lan) applyLan(data.lan);
+        } catch {
+          /* ignore */
+        }
+      };
+    </script>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 140" width="320" height="140" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g-teldrassil" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3a2868"/>
+      <stop offset="55%" stop-color="#5a4890"/>
+      <stop offset="100%" stop-color="#2a1848"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="140" fill="url(#g-teldrassil)"/>
+  <circle cx="250" cy="35" r="22" fill="#a090d0" opacity=".55"/><circle cx="60" cy="40" r="3" fill="#a090d0"/><circle cx="100" cy="28" r="2" fill="#a090d0"/><circle cx="140" cy="45" r="2.5" fill="#a090d0"/><circle cx="180" cy="22" r="2" fill="#a090d0"/>
+      <path d="M0 100 Q80 70 160 100 T320 100 V140 H0 Z" fill="#a090d0" opacity=".25"/>
+  <rect width="320" height="140" fill="#000" opacity=".18"/>
+</svg>

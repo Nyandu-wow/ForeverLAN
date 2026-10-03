@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 140" width="320" height="140" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g-northshire-abbey" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7aa868"/>
+      <stop offset="55%" stop-color="#c5d98a"/>
+      <stop offset="100%" stop-color="#6b8f3a"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="140" fill="url(#g-northshire-abbey)"/>
+  <path d="M50 110 L70 60 L90 110 Z" fill="#e8f0b8" opacity=".4"/><path d="M110 115 L135 50 L160 115 Z" fill="#e8f0b8" opacity=".5"/><path d="M190 110 L215 55 L240 110 Z" fill="#e8f0b8" opacity=".35"/>
+  <rect width="320" height="140" fill="#000" opacity=".18"/>
+</svg>

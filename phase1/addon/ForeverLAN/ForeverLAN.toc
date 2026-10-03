@@ -1,0 +1,12 @@
+## Interface: 16001, 120100
+## AllowLoadGameType: camelot, mainline
+## Title: Forever LAN
+## Notes: Quiet LAN pin. Left-click FL = save to disk. Right-click = /combatlog once. /fl
+## Author: ForeverLAN
+## Version: 0.1.61
+## SavedVariables: ForeverLANDB
+## SavedVariablesPerCharacter: ForeverLANCharDB
+## DefaultState: enabled
+## AddonCompartmentFunc: ForeverLAN_OnAddonCompartmentClick
+
+ForeverLAN.lua

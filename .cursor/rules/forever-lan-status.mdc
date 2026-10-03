@@ -1,0 +1,24 @@
+---
+description: Forever LAN current status — what’s done, deferred, parked
+alwaysApply: true
+---
+
+# Forever LAN — Current status
+
+| Area | Status |
+|------|--------|
+| **MVP dashboard** | Accepted — Live / Characters / Timeline / Zones / Deaths / Wrap / Professions |
+| **Telemetry pipeline** | Working — keep stress-testing |
+| **Offline Friday → Saturday catch-up** | Working / design locked |
+| **Addon baseline** | **0.1.61** — combat-time coalesce; honest pin; board-exclude in collector; TOC `16001` |
+| **Phase 4 friend pack / LAN hosting** | **Active** — rebuild Windows + Steam Deck zips as code changes |
+| **Phase 3 storytelling** | Deferred until after the LAN weekend (board flavour OK now) |
+| **CurseForge / LAN DNS productization** | Parked (optional) |
+
+## Work focus
+
+**Beta development mode** — reliability stress, Forever telemetry discovery, dashboard + awards from real signals, rebuild packs for beta testing.
+
+Do **not** treat friend ZIPs or the addon as an immutable weekend freeze. Prefer break → learn → fix → ship another beta build.
+
+Mid-weekend host/dashboard updates remain safe if `CLIENT_CONTRACT.md` + `lanToken` stay stable when friends are already on a given zip; shipping a **new** friend zip mid-beta is allowed when the host chooses.

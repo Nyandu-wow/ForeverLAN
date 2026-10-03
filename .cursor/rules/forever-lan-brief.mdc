@@ -1,0 +1,79 @@
+---
+description: Forever LAN product identity, honesty model, hosting, and UI requirements
+alwaysApply: true
+---
+
+# Forever LAN — Product brief
+
+Local LAN companion for **one** World of Warcraft: Forever leveling weekend. the host PC is the host; friends play at the house. Not a SaaS product.
+
+**Roster lock:** Alex River, Sam Hill, Jordan Vale, Casey Brook (unless the host changes it). Forever names are always **First Last**; the full name (or GUID) is identity — never match on first name alone.
+
+## Scope lock
+
+- **One weekend / one dataset / no historical runs.**
+- One coherent event dataset feeds the dashboard, replay, and wrap-up — not “just a JSONL file.”
+- **No** multi-weekend history, accounts, cloud analytics, or persistent player profiles.
+- Prefer rebuilding views from the existing event dataset over new persistence layers.
+
+## Friday → Saturday catch-up (design locked)
+
+Friends may start playing **Friday before the host dashboard is running**. Their addons/collectors retain events locally with **original `ev.ts` timestamps**. When the host starts the host on Saturday, clients **catch up their backlog first**, then continue live ingestion.
+
+**Discovery is never a prerequisite for local collection.** Friend agents start the collector immediately, queue to the local outbox while the host is down, and only use `/discover` (plus beacon/scan) to find or refresh the host URL for egress.
+
+Do **not** optimize the system around the assumption that the host is online for the entire weekend.
+
+## Hosting model
+
+the host PC is the local Forever LAN host (at the friend’s house). The dashboard is served directly from that PC over the LAN. **No** cloud database, WAN tunnel, or Internet dependency is required for the MVP.
+
+Future LAN-friendly hostname / CurseForge packaging may still wait; **friend INSTALL pack + LAN host runbook are active (Phase 4 beta artifacts).** See `HOSTING.md` and `friend-client/README.md`. Rebuild packs whenever meaningful code changes — do not treat ZIPs as an immutable freeze.
+
+## Product experience
+
+**ESPN race control + Strava-style personal stats + Mario Party chaos**, wrapped in WoW flavor. Fun and immediately understandable during a LAN — not an enterprise analytics product. (UI/product language only; does not imply cloud analytics.)
+
+## Pages
+
+**Live, Characters, Deaths, Explore, Timeline, Wrap.**
+
+### Overview requirements
+
+- **Live** is the primary control-room screen. At a glance it must answer: who is ahead, who is catching up, what just happened, who is dying, and what deserves attention. Important information must not be buried behind excessive scrolling.
+- **Wrap:** Hall of Shame/Fame must be **visible near the top / above the fold**. It is a headline feature, not a footer section.
+
+## Data honesty (three levels)
+
+Every metric is classified as:
+
+| Level (internal) | UI label | Meaning |
+|-------|---------|---------|
+| **Observed** | **Logged** | Directly reported by WoW / addon / host |
+| **Derived** | **Counted** | Calculated from logged events |
+| **Inferred** | **Guessed** | Interpretation where the source cannot directly verify the claim |
+
+Never present counted/guessed facts as raw logs. Prefer simple counts over speculative metrics. Never invent unavailable WoW data (e.g. XP/hour, hidden power stats Forever blocked).
+
+## Logged telemetry vs counted analytics
+
+**Logged telemetry** (examples): login/logout; level/ding; death/resurrection; zone/instance; distance/jumps; professions/quests/buffs/money; combat time; loot messages; combat-log damage/death enrichment.
+
+**Counted analytics** (examples): pace/race trajectory; lead/comeback; session duration; corpse-run duration; death streaks; activity totals; Hall of Shame/Fame awards; race records.
+
+Keep the distinction explicit in code and UI labels where it matters.
+
+## Trust model (friends)
+
+This is a **LAN party tool, not an anti-cheat system**. Each client syncs the character that player is actually playing. Remembered names (Alex, Sam, Jordan, Casey) also sync when they join that player's party. Authenticated clients submit those events; the host validates schema/identity and deduplicates. Combat-log data is **enrichment**, not a second player identity. Auto-roster prefers characters that push `is_self` addon telemetry so the host watches people who actually play.
+
+## Pipeline (architecture)
+
+```
+WoW → addon (SavedVariables) + optional /combatlog
+  → local collector (outbox, original ev.ts)
+  → POST /events (lanToken) → host jsonl (+ sqlite index)
+  → rebuild /lan + SSE → dashboard
+```
+
+Preserve original timestamps and offline catch-up. Do not assume continuous host uptime.

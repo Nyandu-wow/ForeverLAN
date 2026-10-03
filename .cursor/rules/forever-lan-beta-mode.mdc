@@ -1,0 +1,36 @@
+---
+description: Forever LAN beta development mode — no freeze; break / learn / fix / build
+alwaysApply: true
+---
+
+# Forever LAN — Beta development mode
+
+**DO NOT FREEZE THE PROJECT.**
+
+Addon **0.1.38** (+ current friend / Steam Deck packages) is a **beta baseline**, not a release freeze.
+We use Forever beta to discover bugs, validate telemetry, experiment, and improve addon/dashboard before beta closes.
+
+## Objective
+
+Not “make 0.1.38 production ready.”
+
+**Make the beta break → learn why → fix it → keep building.**
+
+## Priorities (in order)
+
+1. **Real-world reliability** — CharDB, migration, Push LAN, reloads, logout, crashes, collector offline/online, repeated Push, duplicates, multi-character, multi-client, queue cap, host restarts. Failure → fix + regression test where practical.
+2. **Forever telemetry discovery** — Do not assume APIs. Probe what Forever exposes. Classify every signal: **DIRECT / COUNTED / UNAVAILABLE / UNVERIFIED**. Never invent telemetry for a dashboard feature.
+3. **Dashboard** — Live / Characters / Professions / Timeline / Wrap. Party storytelling, Forever flavour, Vanilla humour, useful live info, Mario Party competition, memorable awards. Not a generic MMO analytics DB.
+4. **Awards** — Prize pool from telemetry we actually have. FUTURE awards may unlock as signals become real. Do not weaken honesty to pad awards.
+5. **Beta artifacts** — Friend + Steam Deck packages are known-good **beta builds**. Rebuild whenever code changes; ZIPs are not immutable releases. Meaningful changes should update pack/build output for real beta testing.
+6. **Architecture** — No redesign without evidence. Prefer small changes, observable behavior, regression tests, real Forever testing, backwards-safe migrations, explicit telemetry contracts.
+
+## End-of-task report (required)
+
+Every development task ends with:
+
+- what changed
+- what was learned
+- what was tested
+- what remains uncertain
+- whether a real Forever client test is needed
