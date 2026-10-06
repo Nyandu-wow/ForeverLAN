@@ -63,7 +63,26 @@ export function coalescePending(pending, type, fields = {}, opts = {}) {
     if (type === "PLAYER_MAP_OPENED" && ev.map_kind !== mapKind) continue;
     const evTs = Number(ev.ts) || 0;
     if (flushedAt > 0 && evTs <= flushedAt) break;
-    const merged = { ...ev, ...fields, ts: nowTs };
+    const KEEP = new Set([
+      "v",
+      "id",
+      "source",
+      "type",
+      "guid",
+      "ts",
+      "character",
+      "realm",
+      "class",
+      "is_self",
+      "honesty",
+      "unit",
+      "has_addon",
+    ]);
+    const merged = { ...ev, ts: nowTs };
+    for (const k of Object.keys(merged)) {
+      if (!KEEP.has(k) && !Object.prototype.hasOwnProperty.call(fields, k)) delete merged[k];
+    }
+    Object.assign(merged, fields, { ts: nowTs });
     list[i] = merged;
     return { pending: list, event: merged, coalesced: true };
   }
@@ -77,11 +96,16 @@ export function coalescePending(pending, type, fields = {}, opts = {}) {
  * @param {number} [maxPending]
  * @returns {{ pending: typeof pending, dropped: typeof pending }}
  */
-export function trimPendingOverCap(pending, maxPending = MAX_PENDING) {
+export function trimPendingOverCap(pending, maxPending = MAX_PENDING, flushedAt = 0) {
   const list = Array.isArray(pending) ? pending.slice() : [];
   const dropped = [];
+  const flushTs = Number(flushedAt) || 0;
   while (list.length > maxPending) {
-    let dropIdx = list.findIndex((ev) => ev && DROP_UNDER_PRESSURE.has(ev.type));
+    let dropIdx = -1;
+    if (flushTs > 0) {
+      dropIdx = list.findIndex((ev) => (Number(ev?.ts) || 0) > 0 && (Number(ev?.ts) || 0) <= flushTs);
+    }
+    if (dropIdx < 0) dropIdx = list.findIndex((ev) => ev && DROP_UNDER_PRESSURE.has(ev.type));
     if (dropIdx < 0) dropIdx = 0;
     dropped.push(list.splice(dropIdx, 1)[0]);
   }

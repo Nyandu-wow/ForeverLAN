@@ -45,6 +45,8 @@ export class Egress {
       return { ok: true, status: res.status, mode };
     }
     const text = await res.text();
-    throw new Error(`egress ${res.status}: ${text}`);
+    const err = new Error(`egress ${res.status}: ${text}`);
+    err.status = res.status;
+    throw err;
   }
 }

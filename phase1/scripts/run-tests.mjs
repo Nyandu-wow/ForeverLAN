@@ -24,6 +24,7 @@ const SUITES = [
   "smoke-control-room.mjs",
   "smoke-presence.mjs",
   "smoke-host-e2e.mjs",
+  "test-remote-security.mjs",
 ];
 
 const results = [];

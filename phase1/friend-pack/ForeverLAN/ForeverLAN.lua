@@ -38,7 +38,7 @@
 ]]
 
 local ADDON_NAME = ...
-local ADDON_VERSION = "0.1.61"
+local ADDON_VERSION = "0.1.62"
 -- 3 = SavedVariablesPerCharacter queue (ForeverLANCharDB).
 local SV_SCHEMA = 3
 -- Remembered LAN names. Forever names are always "First Last". Exact match only.
@@ -552,6 +552,9 @@ local function persistCharStore()
   db.schema = SV_SCHEMA
   db.character_key = activeCharKey
   db.updatedAt = time()
+  if snapshotSessionTotals then
+    snapshotSessionTotals(db)
+  end
   ForeverLANDB.schema = SV_SCHEMA
   ForeverLANDB.version = ADDON_VERSION
   ForeverLANDB.collection_mode = "local_first"
@@ -580,6 +583,8 @@ end
 local trimPendingOverCap
 local pruneFlushedLowValuePending
 local pendingFullyFlushedToDisk
+local restorePersistedTotals
+local snapshotSessionTotals
 
 local function bindActiveCharacter()
   local key = currentCharKey()
@@ -599,6 +604,9 @@ local function bindActiveCharacter()
   end
   if pruneFlushedLowValuePending then
     pruneFlushedLowValuePending()
+  end
+  if restorePersistedTotals then
+    restorePersistedTotals()
   end
   persistCharStore()
   return key ~= nil
@@ -652,6 +660,35 @@ local combat = {
   seconds = 0,
   emitted = 0,
 }
+
+local restoredTotals = false
+
+restorePersistedTotals = function()
+  if restoredTotals then
+    return
+  end
+  restoredTotals = true
+  local db = charStore()
+  travel.yards = tonumber(db.travel_yards) or travel.yards or 0
+  travel.jumps = tonumber(db.travel_jumps) or travel.jumps or 0
+  travel.emitted_yards = travel.yards
+  travel.emitted_jumps = travel.jumps
+  combat.seconds = tonumber(db.combat_seconds) or combat.seconds or 0
+  combat.emitted = combat.seconds
+  mapOpens = tonumber(db.map_opens) or mapOpens or 0
+  minimapOpens = tonumber(db.minimap_opens) or minimapOpens or 0
+  lastMapOpensEmitted = mapOpens
+  lastMinimapOpensEmitted = minimapOpens
+end
+
+snapshotSessionTotals = function(db)
+  db.travel_yards = travel.yards
+  db.travel_jumps = travel.jumps
+  db.combat_seconds = combat.seconds
+  db.map_opens = mapOpens
+  db.minimap_opens = minimapOpens
+end
+
 local snapshotUnit -- forward decl for emitSelfTelemetry
 
 local rosterKeys = {}
@@ -763,13 +800,26 @@ end
 -- Returns how many events were dropped this call (0 if under cap).
 trimPendingOverCap = function()
   local dropped = 0
+  local flushedAt = flushMeta().last_flush_at
   while #pending > MAX_PENDING do
     local dropIdx = nil
-    for i = 1, #pending do
-      local t = pending[i] and pending[i].type
-      if t and DROP_UNDER_PRESSURE[t] then
-        dropIdx = i
-        break
+    -- Already-flushed rows are on disk / in the collector; drop those first.
+    if flushedAt > 0 then
+      for i = 1, #pending do
+        local ts = tonumber(pending[i] and pending[i].ts) or 0
+        if ts > 0 and ts <= flushedAt then
+          dropIdx = i
+          break
+        end
+      end
+    end
+    if not dropIdx then
+      for i = 1, #pending do
+        local t = pending[i] and pending[i].type
+        if t and DROP_UNDER_PRESSURE[t] then
+          dropIdx = i
+          break
+        end
       end
     end
     if not dropIdx then
@@ -780,6 +830,10 @@ trimPendingOverCap = function()
       pendingById[gone.id] = nil
     end
     dropped = dropped + 1
+  end
+  if dropped > 0 then
+    local db = charStore()
+    db.dropped_total = (tonumber(db.dropped_total) or 0) + dropped
   end
   return dropped
 end
@@ -912,8 +966,8 @@ local function saveForCollector()
   db.last_flush_at = ts
   db.last_flush_count = n
   persistCharStore()
-  -- RAM hygiene: export holds the snapshot; drop flushed noise so reminders stop.
-  pruneFlushedLowValuePending()
+  -- Do not prune here: PLAYER_LOGOUT can still enqueue (combat-time) and would
+  -- clear export via touchPending, leaving pruned crafts only in vanished RAM.
   return n
 end
 
@@ -1088,6 +1142,28 @@ local function enqueue(eventType, fields, opts)
   local existing = findCoalesceTarget(eventType, fields)
   if existing then
     if fields then
+      -- Snapshot replace: Lua omits nil keys, so a food-buff end would otherwise
+      -- keep the previous food_buff string on the coalesced row.
+      local keep = {
+        v = true,
+        id = true,
+        source = true,
+        type = true,
+        guid = true,
+        ts = true,
+        character = true,
+        realm = true,
+        class = true,
+        is_self = true,
+        honesty = true,
+        unit = true,
+        has_addon = true,
+      }
+      for k, _ in pairs(existing) do
+        if not keep[k] and fields[k] == nil then
+          existing[k] = nil
+        end
+      end
       for k, v in pairs(fields) do
         existing[k] = v
       end
@@ -3352,6 +3428,16 @@ frame:SetScript("OnEvent", function(_, event, ...)
   end
 
   if event == "PLAYER_ALIVE" or event == "PLAYER_UNGHOST" then
+    if event == "PLAYER_ALIVE" then
+      local ghost = false
+      if UnitIsGhost then
+        local ok, isGhost = pcall(UnitIsGhost, "player")
+        ghost = ok and isGhost == true
+      end
+      if ghost then
+        return
+      end
+    end
     local snap = snapshotUnit("player", {})
     local guid = snap and snap.guid
     -- Only emit one rez per death clock; ALIVE+UNGHOST both fire.
@@ -3418,12 +3504,9 @@ frame:SetScript("OnEvent", function(_, event, ...)
     emitCombatTime("logout", true)
     local snap = snapshotUnit("player", {}) or {}
     if pushingLan then
-      -- Push LAN reload - do not enqueue LOGOUT crumbs (they refill the Push count
-      -- and were flipping the board Offline). Presence stays Online via host soft rules.
-      local meta = flushMeta()
-      if meta.export and meta.last_flush_at > 0 and (now() - meta.last_flush_at) <= 5 then
-        persistCharStore()
-      end
+      -- Push LAN reload — re-snapshot after emitCombatTime so the export still
+      -- contains the pre-reload queue (and any last combat-time row).
+      saveForCollector()
       return
     end
     snap.online = false

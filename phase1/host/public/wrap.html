@@ -435,7 +435,9 @@
         return String(s ?? "")
           .replaceAll("&", "&amp;")
           .replaceAll("<", "&lt;")
-          .replaceAll(">", "&gt;");
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
       }
       function fmtDuration(totalSeconds) {
         const s = Math.max(0, Math.round(Number(totalSeconds) || 0));

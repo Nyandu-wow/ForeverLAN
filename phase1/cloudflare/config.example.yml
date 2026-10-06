@@ -1,13 +1,15 @@
-# Cloudflare Tunnel config for ForeverLAN
-# 1. Run: cloudflared tunnel create foreverlan
-# 2. Fill tunnel UUID + credentials-file path below
-# 3. cloudflared tunnel route dns foreverlan foreverlan.example.com
-# 4. cloudflared tunnel --config this-file run
+# Cloudflare Tunnel — Forever LAN remote beta (push-only)
+#
+# WAN exposes friend ingest only. Watch the board on the host PC locally.
+# foreverlan.example.com + Cloudflare Access are optional (not required for push tests).
+#
+# Free Universal SSL covers first-level *.example.com names (e.g. foreverlan-ingest),
+# not nested names like ingest.foreverlan.example.com.
 
 tunnel: REPLACE_WITH_TUNNEL_UUID
 credentials-file: C:\Users\REPLACE\.cloudflared\REPLACE_WITH_TUNNEL_UUID.json
 
 ingress:
-  - hostname: foreverlan.example.com
+  - hostname: foreverlan-ingest.example.com
     service: http://127.0.0.1:8765
   - service: http_status:404

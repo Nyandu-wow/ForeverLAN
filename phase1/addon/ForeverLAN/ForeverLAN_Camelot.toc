@@ -2,8 +2,10 @@
 ## AllowLoadGameType: camelot
 ## Title: Forever LAN
 ## Notes: Quiet LAN pin. Left-click FL = save to disk. Right-click = /combatlog once. /fl
-## Author: ForeverLAN
-## Version: 0.1.61
+## Author: Forever LAN
+## Version: 0.1.62
+## X-License: MIT
+## X-Website: https://github.com/Nyandu-wow/ForeverLAN
 ## SavedVariables: ForeverLANDB
 ## SavedVariablesPerCharacter: ForeverLANCharDB
 ## DefaultState: enabled

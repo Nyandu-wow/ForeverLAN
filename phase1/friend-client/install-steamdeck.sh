@@ -169,18 +169,24 @@ chmod +x "$NODE_BIN" 2>/dev/null || true
 [[ -x "$NODE_BIN" ]] || die "Node binary missing or not executable at $NODE_BIN"
 
 # --- start agent with restart loop (offline-first; discover finds host on LAN) ---
-# Stop prior agent / watchdog if any
-if [[ -f "$HOME_DIR/data/agent.pid" ]]; then
-  old="$(cat "$HOME_DIR/data/agent.pid" || true)"
-  if [[ -n "$old" ]] && kill -0 "$old" 2>/dev/null; then
-    kill "$old" 2>/dev/null || true
-    sleep 1
+# Stop prior agent / watchdog / collector if any
+stop_pid_file() {
+  local f="$1"
+  if [[ -f "$f" ]]; then
+    local old
+    old="$(cat "$f" || true)"
+    if [[ -n "$old" ]] && kill -0 "$old" 2>/dev/null; then
+      kill "$old" 2>/dev/null || true
+      sleep 1
+    fi
   fi
-fi
-if [[ -f "$HOME_DIR/data/watchdog.pid" ]]; then
-  wold="$(cat "$HOME_DIR/data/watchdog.pid" || true)"
-  if [[ -n "$wold" ]] && kill -0 "$wold" 2>/dev/null; then
-    kill "$wold" 2>/dev/null || true
+}
+stop_pid_file "$HOME_DIR/data/agent.pid"
+stop_pid_file "$HOME_DIR/data/watchdog.pid"
+if [[ -f "$HOME_DIR/data/collector.lock" ]]; then
+  cpid="$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('pid',''))" "$HOME_DIR/data/collector.lock" 2>/dev/null || true)"
+  if [[ -n "${cpid:-}" ]] && kill -0 "$cpid" 2>/dev/null; then
+    kill "$cpid" 2>/dev/null || true
     sleep 1
   fi
 fi
@@ -190,11 +196,40 @@ export FOREVERLAN_FRIEND_AGENT=1
 export FOREVERLAN_NODE="$NODE_BIN"
 cp -f "$PACK/start-agent.sh" "$HOME_DIR/start-agent.sh"
 chmod +x "$HOME_DIR/start-agent.sh" 2>/dev/null || true
-nohup bash "$HOME_DIR/start-agent.sh" >>"$HOME_DIR/data/agent.log" 2>&1 &
-echo $! >"$HOME_DIR/data/watchdog.pid"
-# agent.pid is written by agent.js once it holds the lock
 
-# Desktop autostart (optional)
+started_via=""
+if command -v systemctl >/dev/null 2>&1; then
+  mkdir -p "$HOME/.config/systemd/user"
+  cat >"$HOME/.config/systemd/user/foreverlan-agent.service" <<EOF
+[Unit]
+Description=Forever LAN friend agent
+After=network-online.target
+
+[Service]
+Type=simple
+Environment=FOREVERLAN_HOME=$HOME_DIR
+Environment=FOREVERLAN_FRIEND_AGENT=1
+Environment=FOREVERLAN_NODE=$NODE_BIN
+ExecStart=/bin/bash $HOME_DIR/start-agent.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+EOF
+  if systemctl --user daemon-reload >/dev/null 2>&1 \
+    && systemctl --user enable --now foreverlan-agent.service >/dev/null 2>&1; then
+    started_via="systemd --user"
+  fi
+fi
+
+if [[ -z "$started_via" ]]; then
+  nohup bash "$HOME_DIR/start-agent.sh" >>"$HOME_DIR/data/agent.log" 2>&1 &
+  echo $! >"$HOME_DIR/data/watchdog.pid"
+  started_via="watchdog"
+fi
+
+# Desktop autostart (Plasma Desktop session). Game Mode uses the systemd unit when available.
 AUTOSTART="$HOME/.config/autostart"
 mkdir -p "$AUTOSTART"
 cat >"$AUTOSTART/foreverlan-agent.desktop" <<EOF
@@ -206,12 +241,12 @@ X-GNOME-Autostart-enabled=true
 EOF
 
 echo ""
-echo "OK — agent watchdog running (pid $(cat "$HOME_DIR/data/watchdog.pid"))"
+echo "OK — agent started via $started_via"
 echo "  home:   $HOME_DIR"
 echo "  log:    $HOME_DIR/data/agent.log"
 echo "  addon:  enable ForeverLAN in WoW, then /reload"
-echo "  host:   same Wi‑Fi as host-pc; start-weekend.bat + firewall open"
-echo "  check:  on PC run scripts\\weekend-status.bat — look for Deck LAN IP in ingest.log"
+echo "  host:   same Wi-Fi as the Forever LAN host PC"
 echo ""
-echo "Stop later:  kill \$(cat $HOME_DIR/data/watchdog.pid); kill \$(cat $HOME_DIR/data/agent.pid 2>/dev/null)"
+echo "Stop later:  systemctl --user disable --now foreverlan-agent.service"
+echo "             (or kill the watchdog/agent PIDs under $HOME_DIR/data)"
 echo ""

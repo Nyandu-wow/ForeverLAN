@@ -37,6 +37,16 @@ if "%WOW%"=="" (
 
 echo Using: %WOW%
 
+REM Stop a previous Forever LAN agent so this pack's collector actually replaces it.
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$homePath = $env:LOCALAPPDATA + '\ForeverLAN';" ^
+  "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |" ^
+  " Where-Object { $_.Name -match '^(wscript|cscript)\.exe$' -and $_.CommandLine -and ($_.CommandLine -like '*Start-ForeverLAN.vbs*') } |" ^
+  " ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue };" ^
+  "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" -ErrorAction SilentlyContinue |" ^
+  " Where-Object { $_.CommandLine -and ($_.CommandLine -like ('*' + $homePath + '*')) } |" ^
+  " ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"
+
 set "ADDON_DEST=%WOW%\Interface\AddOns\ForeverLAN"
 mkdir "%ADDON_DEST%" 2>nul
 xcopy /E /Y /I /Q "%PACK%addon\ForeverLAN\*" "%ADDON_DEST%\" >nul
@@ -109,8 +119,8 @@ set "STARTUP=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"
 cscript //nologo "%TEMP%\flan-shortcut.vbs" >nul 2>&1
 del "%TEMP%\flan-shortcut.vbs" >nul 2>&1
 
-REM Start agent now
-wscript "%HOME%\Start-ForeverLAN.vbs"
+REM Start agent now (start = do not wait for the looping VBS)
+start "" wscript "%HOME%\Start-ForeverLAN.vbs"
 
 powershell -NoProfile -Command "Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('Forever LAN is installed.`n`nGame folder:`n%WOW%`n`n1. In WoW, enable the ForeverLAN addon`n2. That is all — collection runs in the background.`n`nOptional in-game: /combatlog once, and Push LAN after sessions.`n`nAfter the LAN: double-click \"Uninstall Forever LAN\" on your Desktop to remove everything.','Forever LAN',0,64)"
 

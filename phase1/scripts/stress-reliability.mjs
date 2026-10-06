@@ -414,6 +414,16 @@ test("coalesce keeps one distance/money/map row per stream; remints after Push",
   assert.equal(pending.filter((e) => e.type === "PLAYER_CRAFT").length, 2);
 });
 
+test("coalesce snapshot drops stale fields omitted on the next emit", () => {
+  let pending = [
+    { id: "f1", type: "PLAYER_FOOD_BUFF", guid: "G1", ts: 1, food_buff: "Steak", well_fed: true },
+  ];
+  const r = coalescePending(pending, "PLAYER_FOOD_BUFF", { guid: "G1", well_fed: false }, { nowTs: 2 });
+  assert.equal(r.coalesced, true);
+  assert.equal(r.event.food_buff, undefined);
+  assert.equal(r.event.well_fed, false);
+});
+
 test("over cap drops DROP_UNDER_PRESSURE before LOGIN/DIED/LEVEL", () => {
   const pending = [];
   for (let i = 0; i < 1400; i++) {
@@ -442,6 +452,24 @@ test("when only high-signal remains, oldest drops", () => {
   assert.equal(dropped.length, 5);
   assert.equal(dropped[0].id, "ding-0");
   assert.equal(kept[0].id, "ding-5");
+});
+
+test("over cap drops already-flushed rows before unflushed noise", () => {
+  const pending = [];
+  for (let i = 0; i < 50; i++) {
+    pending.push({ id: `newdist-${i}`, type: "PLAYER_DISTANCE", ts: 20000 });
+  }
+  for (let i = 0; i < 1400; i++) {
+    pending.push({ id: `login-${i}`, type: "LOGIN", ts: 10000 });
+  }
+  for (let i = 0; i < 150; i++) {
+    pending.push({ id: `olddist-${i}`, type: "PLAYER_DISTANCE", ts: 1 });
+  }
+  const { pending: kept, dropped } = trimPendingOverCap(pending, MAX_PENDING, 5000);
+  assert.equal(kept.length, MAX_PENDING);
+  assert.equal(dropped.length, 100);
+  assert.ok(dropped.every((e) => String(e.id).startsWith("olddist-")));
+  assert.equal(kept.filter((e) => String(e.id).startsWith("newdist-")).length, 50);
 });
 
 test("after Push, prune flushed low-value until soft-warn; suppress full-flush nag", () => {

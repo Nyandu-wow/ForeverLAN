@@ -333,7 +333,7 @@
         ([href, label]) => `<a class="${path === href ? "on" : ""}" href="${href}">${label}</a>`
       ).join("");
 
-      const esc = (s) => String(s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+      const esc = (s) => String(s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
       const honestyChip = (raw) => {
         const k = String(raw || "").trim().toLowerCase();
         if (k === "observed") return "LOGGED";

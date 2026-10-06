@@ -262,7 +262,14 @@ async function main() {
     textExts: new Set([".toc", ".lua", ".md", ".txt"]),
   });
 
-  for (const name of ["agent.js", "discover.js", "start-agent.sh", "install-steamdeck.sh", "STEAMDECK.md"]) {
+  for (const name of [
+    "agent.js",
+    "discover.js",
+    "start-agent.sh",
+    "install-steamdeck.sh",
+    "STEAMDECK.md",
+    "foreverlan-agent.service",
+  ]) {
     const src = path.join(phase1, "friend-client", name);
     if (!fs.existsSync(src)) throw new Error(`missing ${src}`);
     copyUnixTextFile(src, path.join(out, name));
@@ -274,7 +281,15 @@ async function main() {
     lanToken: cfg.lanToken,
     httpPort: Number(cfg.listenPort || 8765),
   };
-  if (cfg.friendHostUrl) party.hostUrl = cfg.friendHostUrl;
+  if (cfg.friendHostUrl) {
+    party.hostUrl = cfg.friendHostUrl;
+    if (/^https:\/\//i.test(String(cfg.friendHostUrl))) {
+      console.warn("");
+      console.warn("!!! WARNING: friendHostUrl is an Internet URL:", cfg.friendHostUrl);
+      console.warn("!!! For the house LAN weekend: remove friendHostUrl from config.json and rebuild.");
+      console.warn("");
+    }
+  }
   writeUnixText(path.join(out, "party.json"), JSON.stringify(party, null, 2) + "\n");
 
   writeUnixText(

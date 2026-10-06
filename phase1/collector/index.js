@@ -62,21 +62,36 @@ function loadState(statePath) {
 }
 
 function saveState(statePath, state) {
-  fs.mkdirSync(path.dirname(statePath), { recursive: true });
-  // keep seen ids bounded
-  if (state.seenClipboardIds.length > 5000) {
-    state.seenClipboardIds = state.seenClipboardIds.slice(-3000);
+  try {
+    fs.mkdirSync(path.dirname(statePath), { recursive: true });
+    // keep seen ids bounded
+    if (state.seenClipboardIds.length > 5000) {
+      state.seenClipboardIds = state.seenClipboardIds.slice(-3000);
+    }
+    const fps = state.svFingerprints && typeof state.svFingerprints === "object" ? state.svFingerprints : {};
+    const keys = Object.keys(fps);
+    if (keys.length > 80) {
+      // Drop oldest-looking paths first (sorted) — rare; keeps state file small.
+      const keep = keys.sort().slice(-60);
+      const next = {};
+      for (const k of keep) next[k] = fps[k];
+      state.svFingerprints = next;
+    }
+    const tmp = `${statePath}.${process.pid}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(state, null, 2), "utf8");
+    try {
+      fs.renameSync(tmp, statePath);
+    } catch {
+      fs.copyFileSync(tmp, statePath);
+      try {
+        fs.unlinkSync(tmp);
+      } catch {
+        /* ignore */
+      }
+    }
+  } catch (err) {
+    cerror("[collector] saveState failed:", err?.message || err);
   }
-  const fps = state.svFingerprints && typeof state.svFingerprints === "object" ? state.svFingerprints : {};
-  const keys = Object.keys(fps);
-  if (keys.length > 80) {
-    // Drop oldest-looking paths first (sorted) — rare; keeps state file small.
-    const keep = keys.sort().slice(-60);
-    const next = {};
-    for (const k of keep) next[k] = fps[k];
-    state.svFingerprints = next;
-  }
-  fs.writeFileSync(statePath, JSON.stringify(state, null, 2), "utf8");
 }
 
 async function isWowRunning() {
@@ -233,9 +248,11 @@ async function main() {
     return ok;
   }
 
-  // Clipboard bridge (optional — Forever blocks CopyToClipboard; poll slowly)
+  // Clipboard bridge — legacy, opt-in only. Forever blocks CopyToClipboard and the addon never
+  // writes it; each poll spawns powershell.exe, so friend gaming PCs must not run it by default.
+  const clipboardMs = Number(config.pollClipboardMs) || 0;
   let clipboardBusy = false;
-  setInterval(async () => {
+  if (process.platform === "win32" && clipboardMs > 0) setInterval(async () => {
     if (clipboardBusy) return;
     clipboardBusy = true;
     try {
@@ -269,7 +286,7 @@ async function main() {
     } finally {
       clipboardBusy = false;
     }
-  }, config.pollClipboardMs || 5000);
+  }, Math.max(2000, clipboardMs));
 
   // SavedVariables bridge (fires after /reload or logout when WoW writes disk)
   const ackPath = path.join(config.dataDir, "addon-ack.json");
@@ -495,12 +512,24 @@ async function main() {
               clog(`[collector] sent ${row.event.type} [${result.mode || "live"}]`);
             }
           } catch (err) {
+            const status = Number(err?.status) || 0;
+            if (status === 400 || status === 413) {
+              outbox.markRejected(row.event.id, err.message);
+              clog(`[collector] dropping malformed event ${row.event.type} ${row.event.id}: ${err.message}`);
+              continue;
+            }
             outbox.markFailure(row.event.id, err.message);
             egressFailStreak += 1;
             flushDelayMs = Math.min(15000, 1000 * Math.pow(2, Math.min(egressFailStreak, 4)));
             // One line when the host goes quiet. Events stay in the outbox.
-            // Do not repeat the timeout on every retry — that is normal while the host boots or is down.
-            if (!hostDownLogged) {
+            if (status === 401 || status === 403) {
+              if (!hostDownLogged) {
+                hostDownLogged = true;
+                clog(
+                  `[collector] host refused ingest (${status}) — check lanToken / ingest hostname. Queue kept.`
+                );
+              }
+            } else if (!hostDownLogged) {
               hostDownLogged = true;
               clog(
                 `[collector] host not answering — keeping events locally until it is back (${err.message})`

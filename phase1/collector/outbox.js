@@ -23,6 +23,7 @@ export class Outbox {
     this.#rewriteFailStreak = 0;
     this.#log = opts.log || ((..._args) => {});
     this.recoveredPartialLine = false;
+    this.loadFailed = false;
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     this.#load();
   }
@@ -39,7 +40,8 @@ export class Outbox {
     try {
       text = fs.readFileSync(this.filePath, "utf8");
     } catch (err) {
-      this.#log(`[outbox] load failed: ${err.message}`);
+      this.loadFailed = true;
+      this.#log(`[outbox] load failed — append-only until restart (will not rewrite): ${err.message}`);
       return;
     }
     if (!text) return;
@@ -73,8 +75,10 @@ export class Outbox {
     if (droppedPartial) {
       this.recoveredPartialLine = true;
       try {
-        const body = kept.length ? kept.join("\n") + "\n" : "";
-        fs.writeFileSync(this.filePath, body, "utf8");
+        const buf = fs.readFileSync(this.filePath);
+        const cut = buf.lastIndexOf(0x0a) + 1;
+        fs.writeFileSync(`${this.filePath}.torn-${Date.now()}.txt`, buf.subarray(cut));
+        fs.truncateSync(this.filePath, cut);
         this.#log(
           `[outbox] recovered: truncated incomplete final line (${kept.length} complete rows kept)`
         );
@@ -118,7 +122,7 @@ export class Outbox {
     const unsent = [];
     const sent = [];
     for (const row of this.byId.values()) {
-      if (!row.sent_at) unsent.push(row);
+      if (!row.sent_at && !row.rejected_at) unsent.push(row);
       else sent.push(row);
     }
     sent.sort((a, b) => String(a.sent_at).localeCompare(String(b.sent_at)));
@@ -149,6 +153,11 @@ export class Outbox {
   }
 
   #rewrite() {
+    if (this.loadFailed) {
+      this.#dirty = false;
+      this.#log("[outbox] rewrite skipped — original file preserved after load failure");
+      return;
+    }
     if (this.#rewriting) {
       this.#dirty = true;
       return;
@@ -253,7 +262,7 @@ export class Outbox {
   pending(limit = 50) {
     const out = [];
     for (const row of this.byId.values()) {
-      if (!row.sent_at) out.push(row);
+      if (!row.sent_at && !row.rejected_at) out.push(row);
     }
     out.sort((a, b) => {
       const ta = Number(a.event?.ts) || 0;
@@ -267,7 +276,7 @@ export class Outbox {
   pendingCount() {
     let n = 0;
     for (const row of this.byId.values()) {
-      if (!row.sent_at) n += 1;
+      if (!row.sent_at && !row.rejected_at) n += 1;
     }
     return n;
   }
@@ -276,7 +285,7 @@ export class Outbox {
     let sent = 0;
     let unsent = 0;
     for (const row of this.byId.values()) {
-      if (row.sent_at) sent += 1;
+      if (row.sent_at || row.rejected_at) sent += 1;
       else unsent += 1;
     }
     let bytes = 0;
@@ -302,11 +311,19 @@ export class Outbox {
     this.#scheduleRewrite();
   }
 
+  markRejected(eventId, err) {
+    const row = this.byId.get(eventId);
+    if (!row) return;
+    row.rejected_at = new Date().toISOString();
+    row.last_error = String(err);
+    this.#scheduleRewrite();
+  }
+
   markFailure(eventId, err) {
     const row = this.byId.get(eventId);
     if (!row) return;
     row.attempts = (row.attempts || 0) + 1;
     row.last_error = String(err);
-    this.#scheduleRewrite();
+    // Do not rewrite the whole outbox on a failed POST — the row is still unsent.
   }
 }

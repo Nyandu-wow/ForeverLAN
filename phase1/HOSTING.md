@@ -39,15 +39,28 @@ After the LAN: **Uninstall Forever LAN** (Desktop) or `Uninstall.bat`.
 
 **Steam Deck / SteamOS:** Windows `INSTALL.bat` will not run. Use [`friend-client/STEAMDECK.md`](friend-client/STEAMDECK.md) (`install-steamdeck.sh`) — same host, Linux agent + addon in the Proton WoW folder.
 
-## C. Optional hostname
+## C. Optional hostname / remote beta (push-only)
 
-`foreverlan.example.com` → LAN IP via split-horizon DNS/hosts is optional. Agents find the host without it.
+On the house LAN, agents find the host via beacon + `/discover` — no hostname required.
+
+**Remote friend beta** (same stack, WAN via Cloudflare Tunnel — **ingest only**): see [`cloudflare/README.md`](cloudflare/README.md).
+
+1. One-time: tunnel `foreverlan` + DNS for `foreverlan-ingest.example.com` (run `cloudflare/setup-tunnel.ps1`)
+2. `config.yml` ingress = ingest hostname only — **do not** publish `foreverlan.example.com` for push tests
+3. `config.json`: `"remoteSecurityMode": "wan"`, `"ingestPublicHostname": "foreverlan-ingest.example.com"`, `"friendHostUrl": "https://foreverlan-ingest.example.com"`
+4. Rebuild Friends zip; session: `scripts\start-remote-beta.bat`
+5. Verify: `node scripts/test-remote-security.mjs` and `--live-wan` when the tunnel is up
+6. Watch the board at `http://127.0.0.1:8765/` — stop the tunnel when not testing
+
+Cloudflare Access on a remote dashboard hostname is **optional later** only — see [`cloudflare/access-policy.md`](cloudflare/access-policy.md).
+
+House LAN weekend: omit / turn off `remoteSecurityMode`, clear `friendHostUrl`, use `start-weekend.bat` only (tunnel off). `config.example.json` is LAN-first; use `config.remote-beta.example.json` only for a remote ingest experiment.
 
 ## Required
 
-- No cloud DB / automatic Internet upload / WAN port forwarding
-- Data stays on host disk; `POST /events` token-authenticated
-- Do not use Cloudflare Tunnel as the product path
+- No cloud DB / automatic Internet upload / WAN port forwarding for the house LAN product path
+- Data stays on host disk; `POST /events` token-authenticated (`lanToken`)
+- Cloudflare Tunnel + Access is for remote beta only — not the house-LAN default
 
 See also [`DATA_COLLECTION.md`](DATA_COLLECTION.md) and [`CLIENT_CONTRACT.md`](CLIENT_CONTRACT.md).
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.62
+
+- Push LAN: re-snapshot export on logout so a mid-combat Push cannot wipe the disk queue. Cap trim drops already-flushed rows first and counts drops. Session travel/combat totals persist across reloads. Spirit-release `PLAYER_ALIVE` is not a resurrection. Coalesced snapshots drop stale fields (food buff end, secret-blocked power).
+
 ## 0.1.61
 
 - Coalesce + pressure-drop `PLAYER_COMBAT_TIME` (same snapshot stream as distance/money) so Push exports stop minting a combat-time row every poll tick.

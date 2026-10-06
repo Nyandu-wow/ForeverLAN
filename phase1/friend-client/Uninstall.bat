@@ -2,7 +2,7 @@
 REM Forever LAN — full uninstall. Restores the PC to pre-LAN state for this product.
 REM Removes: silent agent, Startup entry, WoW addon, local agent data, ForeverLAN SavedVariables.
 REM Does NOT remove: WoW itself, combat logs, other addons, Node.js you installed yourself.
-setlocal EnableExtensions
+setlocal EnableExtensions EnableDelayedExpansion
 title Forever LAN Uninstall
 
 set "HOME=%LOCALAPPDATA%\ForeverLAN"
@@ -19,7 +19,7 @@ REM Kill only the agent we started (PID file) — never blanket-kill all node.ex
 if exist "%HOME%\data\agent.pid" (
   set /p AGENT_PID=<"%HOME%\data\agent.pid"
   if defined AGENT_PID (
-    taskkill /F /PID %AGENT_PID% >nul 2>&1
+    taskkill /F /PID !AGENT_PID! >nul 2>&1
   )
 )
 
@@ -62,16 +62,15 @@ if not "%WOW%"=="" (
   )
   echo Removing ForeverLAN SavedVariables...
   if exist "%WOW%\WTF\Account" (
-    for /d %%A in ("%WOW%\WTF\Account\*") do (
-      del /f /q "%%A\SavedVariables\ForeverLAN.lua" >nul 2>&1
-      del /f /q "%%A\SavedVariables\ForeverLAN.lua.bak" >nul 2>&1
-    )
+    for /r "%WOW%\WTF\Account" %%F in (ForeverLAN.lua) do del /f /q "%%F" >nul 2>&1
+    for /r "%WOW%\WTF\Account" %%F in (ForeverLAN.lua.bak) do del /f /q "%%F" >nul 2>&1
   )
 ) else (
   echo WoW folder not found — skipped addon / SavedVariables cleanup.
 )
 
 echo Removing local Forever LAN files...
+cd /d "%TEMP%"
 if exist "%HOME%" (
   rmdir /s /q "%HOME%"
 )

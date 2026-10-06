@@ -211,13 +211,22 @@ function eventsFromExportString(exportStr) {
 
 function collectEventsFromBucket(bucket) {
   if (!bucket || typeof bucket !== "object") return { events: [], via: null };
+  const byId = new Map();
+  let via = null;
   if (typeof bucket.export === "string" && bucket.export.startsWith(PREFIX)) {
-    const fromExport = eventsFromExportString(bucket.export);
-    if (fromExport.length) return { events: fromExport, via: "export" };
+    for (const ev of eventsFromExportString(bucket.export)) {
+      if (ev?.id && !byId.has(ev.id)) byId.set(ev.id, ev);
+    }
+    if (byId.size) via = "export";
   }
-  const fromPending = luaTableToEvents(bucket.pending);
-  if (fromPending.length) return { events: fromPending, via: "pending" };
-  return { events: [], via: null };
+  // Pending can hold rows minted after the export snapshot (Push-in-combat combat-time).
+  for (const ev of luaTableToEvents(bucket.pending)) {
+    if (ev?.id && !byId.has(ev.id)) {
+      byId.set(ev.id, ev);
+      via = via ? "merged" : "pending";
+    }
+  }
+  return { events: [...byId.values()], via };
 }
 
 /**

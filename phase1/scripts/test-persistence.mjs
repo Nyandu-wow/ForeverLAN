@@ -393,6 +393,16 @@ await testAsync("repeated identical SV snapshot does not duplicate outbox rows",
 
 console.log("\n[4] Single-instance lock");
 
+test("load failure does not rewrite/wipe the original outbox path", () => {
+  const dir = path.join(tmpRoot, "outbox-as-dir");
+  fs.mkdirSync(dir, { recursive: true });
+  const box = new Outbox(dir);
+  assert.equal(box.loadFailed, true);
+  box.markSent("nope");
+  box.flush();
+  assert.equal(fs.statSync(dir).isDirectory(), true);
+});
+
 test("second lock acquire fails while first is held", () => {
   const lockPath = path.join(tmpRoot, "collector.lock");
   try {
@@ -412,6 +422,21 @@ test("second lock acquire fails while first is held", () => {
   const c = acquireCollectorLock(lockPath);
   assert.equal(c.ok, true);
   c.release();
+});
+
+test("stale lock from a previous boot is stolen even if pid looks alive", () => {
+  const lockPath = path.join(tmpRoot, "stale.lock");
+  const beforeBoot = Date.now() - os.uptime() * 1000 - 120_000;
+  fs.writeFileSync(
+    lockPath,
+    JSON.stringify({
+      pid: process.pid,
+      started_at: new Date(beforeBoot).toISOString(),
+    })
+  );
+  const got = acquireCollectorLock(lockPath);
+  assert.equal(got.ok, true, `expected steal, got ${got.reason}`);
+  got.release();
 });
 
 console.log("\n[5] Cleanup");

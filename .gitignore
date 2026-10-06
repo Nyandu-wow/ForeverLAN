@@ -5,6 +5,12 @@ phase1/config.json
 .env.*
 !.env.example
 
+# Cloudflare Tunnel (local credentials + portable binary)
+phase1/cloudflare/config.yml
+phase1/cloudflare/bin/
+phase1/cloudflare/*.json
+**/.cloudflared/
+
 # Large local archives
 *.zip
 phase1 (2).zip
@@ -22,6 +28,9 @@ phase1/backups/
 **/lan-state.json
 **/tmp-*.json
 **/tmp-*.lua
+
+**/party.json
+!party.example.json
 
 # OS / editor
 .DS_Store

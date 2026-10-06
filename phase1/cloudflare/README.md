@@ -1,64 +1,57 @@
-# Cloudflare: foreverlan.example.com
+# Cloudflare Tunnel — remote friend beta (push-only)
 
-**Parked for the LAN weekend.** Do not run this tunnel during the one-weekend LAN.
-Dashboard GETs (`/lan`, `/events`, `/api/*`, `/stream`) are intentionally open on the LAN TV;
-a public HTTPS tunnel would publish that surface to the WAN. Friend agents use LAN discovery + `lanToken` for POST `/events`.
+For remote testing, friends only need to **push events**. The board stays on the host PC.
 
-Expose the local ForeverLAN host (port **8765**) as **https://foreverlan.example.com** with Cloudflare Tunnel only if the host explicitly wants WAN access after the LAN.
+| Hostname | Role |
+|----------|------|
+| `https://foreverlan-ingest.example.com` | Friend `POST /events` — **`lanToken`**, host allows this path only |
+| `http://127.0.0.1:8765/` | Dashboard / SSE / APIs — **local**, not published on the tunnel |
+
+```text
+Agent    ──lanToken─►  foreverlan-ingest.example.com ──tunnel──►  :8765  (POST /events)
+You      ──browser──►  http://127.0.0.1:8765/                 (board on host PC)
+```
+
+Optional: Cloudflare Access on `foreverlan.example.com` if you later want a remote board. Not required for push tests — leave that hostname **off** the tunnel ingress (see `config.yml`).
+
+**House LAN weekend:** tunnel **off**, clear `friendHostUrl`, LAN discovery as usual.
+
+## Config (`phase1/config.json`)
+
+```json
+"remoteSecurityMode": "wan",
+"ingestPublicHostname": "foreverlan-ingest.example.com",
+"friendHostUrl": "https://foreverlan-ingest.example.com"
+```
+
+- Friends zip gets `friendHostUrl` → ingest
+- Host returns `403 ingest_host_only` for anything except `POST /events` on that hostname
 
 ## One-time setup
 
-1. Install [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/).
-2. Login (opens browser):
+1. `bin\cloudflared.exe` + `tunnel login` + tunnel `foreverlan`
+2. DNS: `cloudflared tunnel route dns foreverlan foreverlan-ingest.example.com`
+3. `config.yml` ingress = ingest hostname only
+4. Rebuild Friends zip
+
+## Every remote-beta session
 
 ```bat
-cloudflared tunnel login
+phase1\scripts\start-remote-beta.bat
 ```
-
-3. Create a named tunnel:
 
 ```bat
-cloudflared tunnel create foreverlan
+node phase1\scripts\test-remote-security.mjs
+node phase1\scripts\test-remote-security.mjs --live-wan
 ```
 
-Note the tunnel UUID and credentials JSON path printed by the CLI.
+## Path matrix (WAN)
 
-4. Route DNS (CNAME `foreverlan` → tunnel):
+| Surface | Where | Auth |
+|---------|--------|------|
+| `POST /events` | `foreverlan-ingest.example.com` | `lanToken` |
+| Board /stream /api /health /discover | host PC `127.0.0.1:8765` | none (LAN/local) |
 
-```bat
-cloudflared tunnel route dns foreverlan foreverlan.example.com
-```
+**Do not re-run an old setup that adds `foreverlan.example.com` to ingress** — current `setup-tunnel.ps1` is ingest-only.
 
-5. Copy `config.example.yml` → `%USERPROFILE%\.cloudflared\config.yml` (or keep it under `phase1/cloudflare/config.yml`) and fill in:
-   - `tunnel:` UUID
-   - `credentials-file:` path to the JSON from step 3
-   - ingress hostname `foreverlan.example.com` → `http://127.0.0.1:8765`
-
-## Run (every LAN session)
-
-1. Start the host: `node phase1/host/server.js`
-2. Start the tunnel:
-
-```bat
-cloudflared tunnel --config path\to\phase1\cloudflare\config.yml run
-```
-
-Or use `start-tunnel.ps1` after editing the config path.
-
-3. Open https://foreverlan.example.com/  
-   Wrap: https://foreverlan.example.com/wrap
-
-## Security
-
-- **GET** `/`, `/wrap`, `/lan`, `/stream` — public (friends watch without a login).
-- **POST** `/events` — requires `x-foreverlan-token` matching `lanToken` in `phase1/config.json`.
-- Friends’ collectors use that token; never commit it to a public repo.
-
-## Checklist
-
-- [ ] cloudflared installed + logged in
-- [ ] tunnel `foreverlan` created
-- [ ] DNS `foreverlan.example.com` routed
-- [ ] `config.yml` points at `127.0.0.1:8765`
-- [ ] host running with `lanToken` set
-- [ ] friends have token in their collector config
+See also [`access-policy.md`](access-policy.md) if you re-enable a remote dashboard later.

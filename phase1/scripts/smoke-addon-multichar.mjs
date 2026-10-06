@@ -364,6 +364,39 @@ ForeverLANDB = {
 
 console.log("\n[3] Push export in CharDB");
 
+test("CharDB export + pending extra id → both events", () => {
+  const shared = {
+    v: 1,
+    id: "push-1",
+    ts: 99,
+    type: "LOGIN",
+    character: "Alex",
+    source: "addon",
+  };
+  const extra = {
+    v: 1,
+    id: "combat-late",
+    ts: 100,
+    type: "PLAYER_COMBAT_TIME",
+    character: "Alex",
+    source: "addon",
+  };
+  const exportStr = `FOREVERLAN_CLIP|{"events":[${JSON.stringify(shared)}]}`;
+  writeSv(
+    path.join(tmp, "push-extra.lua"),
+    `ForeverLANCharDB = {
+  ["schema"] = 3,
+  ["export"] = "${luaEscape(exportStr)}",
+  ["pending"] = { ${eventLua(shared)}, ${eventLua(extra)}, },
+}
+`
+  );
+  const snap = readSavedVariablesSnapshot(path.join(tmp, "push-extra.lua"));
+  assert.equal(snap.ok, true);
+  assert.equal(snap.events.length, 2);
+  assert.equal(new Set(snap.events.map((e) => e.id)).has("combat-late"), true);
+});
+
 test("CharDB export + pending same ids → one event", () => {
   const ev = {
     v: 1,

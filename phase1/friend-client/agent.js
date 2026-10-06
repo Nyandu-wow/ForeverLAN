@@ -10,6 +10,7 @@
  * Friends never open a terminal.
  */
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -96,7 +97,10 @@ function liveCollectorOwnsOutbox(home) {
   if (!fs.existsSync(lockPath)) return false;
   try {
     const raw = JSON.parse(fs.readFileSync(lockPath, "utf8"));
-    return pidAlive(raw.pid);
+    if (!pidAlive(raw.pid)) return false;
+    // Lock from a previous boot (Windows reuses pids) is stale even if that pid is alive now.
+    const started = Date.parse(raw.started_at || "");
+    return !Number.isFinite(started) || started >= Date.now() - os.uptime() * 1000 - 60_000;
   } catch {
     try {
       return pidAlive(Number(String(fs.readFileSync(lockPath, "utf8")).trim()));
@@ -128,7 +132,7 @@ function writeCollectorConfig(hostUrl, party, token) {
     lanToken: token,
     wowRoot: party.wowRoot || "",
     clientFolder: party.clientFolder || "_classic_beta_",
-    pollClipboardMs: 400,
+    pollClipboardMs: 0,
     pollCombatLogMs: 500,
     pollProcessMs: 2000,
     outboxPath: path.join(dataDir, "outbox.jsonl"),
@@ -224,7 +228,9 @@ async function main() {
 
   // Prefer last-known host as a hint so egress can flush sooner if still valid.
   // Never wait on discovery before spawning the collector.
-  let hostUrl = readLastHostUrl(home) || party.hostUrl || null;
+  // An https:// party.hostUrl is a pinned remote-beta ingest: no LAN beacon/subnet scans.
+  const pinnedRemote = /^https:\/\//i.test(String(party.hostUrl || ""));
+  let hostUrl = pinnedRemote ? party.hostUrl : readLastHostUrl(home) || party.hostUrl || null;
   let configPath = writeCollectorConfig(hostUrl, party, token);
 
   let child = null;
@@ -355,6 +361,11 @@ async function main() {
     writeLog(prev ? `host changed ${prev} -> ${next} (config only; collector keeps running)` : `host discovered ${next}`);
     hostUrl = next;
     configPath = writeCollectorConfig(hostUrl, party, token);
+  }
+
+  if (pinnedRemote) {
+    writeLog(`remote ingest pinned ${hostUrl} — LAN discovery off`);
+    return;
   }
 
   // Discovery loop — never gates collection.

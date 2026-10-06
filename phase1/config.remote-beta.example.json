@@ -1,0 +1,12 @@
+{
+  "hostUrl": "http://127.0.0.1:8765",
+  "friendHostUrl": "https://foreverlan-ingest.example.com",
+  "ingestPublicHostname": "foreverlan-ingest.example.com",
+  "remoteSecurityMode": "wan",
+  "listenHost": "127.0.0.1",
+  "listenPort": 8765,
+  "lanToken": "GENERATE_A_LONG_RANDOM_TOKEN",
+  "lanRoster": ["Alex River", "Sam Hill", "Jordan Vale", "Casey Brook"],
+  "lanName": "Forever Leveling",
+  "lanLevelCap": 60
+}

@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 /**
@@ -14,6 +15,18 @@ function pidAlive(pid) {
   } catch {
     return false;
   }
+}
+
+/**
+ * Live owner = pid alive AND lock written since this boot. Windows shutdown / taskkill /F skip
+ * exit handlers, and the next boot can reuse that pid for Discord/Steam — never trust it.
+ */
+function lockOwnerAlive(lock) {
+  if (!lock?.pid || !pidAlive(lock.pid)) return false;
+  const started = Date.parse(lock.started_at || "");
+  if (!Number.isFinite(started)) return true;
+  const bootAt = Date.now() - os.uptime() * 1000;
+  return started >= bootAt - 60_000;
 }
 
 function readLock(lockPath) {
@@ -59,10 +72,10 @@ export function acquirePidLock(lockPath, opts = {}) {
   let fd = tryCreate();
   if (!fd) {
     const existing = readLock(lockPath);
-    if (existing?.pid === process.pid) {
+    if (existing?.pid === process.pid && lockOwnerAlive(existing)) {
       return { ok: false, reason: "already_held_by_self", pid: existing.pid };
     }
-    if (existing?.pid && pidAlive(existing.pid)) {
+    if (lockOwnerAlive(existing)) {
       return {
         ok: false,
         reason: label === "collector" ? "another_collector_running" : "another_running",
@@ -130,8 +143,7 @@ export function acquireCollectorLock(lockPath, opts = {}) {
 /** True if a live process already holds the lock for this path. */
 export function isPidLockHeld(lockPath) {
   if (!fs.existsSync(lockPath)) return false;
-  const existing = readLock(lockPath);
-  return Boolean(existing?.pid && pidAlive(existing.pid));
+  return lockOwnerAlive(readLock(lockPath));
 }
 
 /** @deprecated use isPidLockHeld */

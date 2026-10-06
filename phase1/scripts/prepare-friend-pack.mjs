@@ -6,6 +6,7 @@
  *
  * Output: phase1/dist/ForeverLAN-Friends/
  */
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -16,7 +17,7 @@ import { pipeline } from "node:stream/promises";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const phase1 = path.resolve(__dirname, "..");
-const NODE_VERSION = "20.18.1";
+const NODE_VERSION = "22.11.0";
 const NODE_ZIP = `node-v${NODE_VERSION}-win-x64.zip`;
 const NODE_URL = `https://nodejs.org/dist/v${NODE_VERSION}/${NODE_ZIP}`;
 
@@ -59,14 +60,40 @@ function download(url, dest) {
   });
 }
 
+function warnInternetHostUrl(url) {
+  if (!/^https:\/\//i.test(String(url))) return;
+  console.warn("");
+  console.warn("!!! WARNING: friendHostUrl is an Internet URL:", url);
+  console.warn("!!! This pack sends friends' events over the Internet (remote beta).");
+  console.warn("!!! For the house LAN weekend: remove friendHostUrl from config.json and rebuild.");
+  console.warn("");
+}
+
+async function verifyNodeChecksum(zipPath) {
+  const sumsPath = `${zipPath}.SHASUMS256.txt`;
+  await download(`https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt`, sumsPath);
+  const line = fs
+    .readFileSync(sumsPath, "utf8")
+    .split(/\r?\n/)
+    .find((l) => l.trim().endsWith(` ${NODE_ZIP}`));
+  fs.rmSync(sumsPath, { force: true });
+  const expected = line?.trim().split(/\s+/)[0];
+  const actual = crypto.createHash("sha256").update(fs.readFileSync(zipPath)).digest("hex");
+  if (!expected || expected !== actual) {
+    throw new Error(`portable Node checksum mismatch for ${NODE_ZIP} (expected ${expected || "?"}, got ${actual})`);
+  }
+}
+
 async function ensurePortableNode(runtimeDir) {
   fs.mkdirSync(runtimeDir, { recursive: true });
   const nodeExe = path.join(runtimeDir, "node.exe");
   const cacheDir = path.join(phase1, ".cache", `node-v${NODE_VERSION}-win-x64`);
   const cachedExe = path.join(cacheDir, "node.exe");
+  const cachedLicense = path.join(cacheDir, "LICENSE");
 
   if (fs.existsSync(cachedExe)) {
     fs.copyFileSync(cachedExe, nodeExe);
+    if (fs.existsSync(cachedLicense)) fs.copyFileSync(cachedLicense, path.join(runtimeDir, "LICENSE"));
     console.log("portable node: from cache");
     return;
   }
@@ -75,6 +102,7 @@ async function ensurePortableNode(runtimeDir) {
   const zipPath = path.join(phase1, ".cache", NODE_ZIP);
   console.log("downloading portable Node", NODE_VERSION, "…");
   await download(NODE_URL, zipPath);
+  await verifyNodeChecksum(zipPath);
 
   const extractDir = path.join(phase1, ".cache", "_extract");
   fs.rmSync(extractDir, { recursive: true, force: true });
@@ -86,6 +114,11 @@ async function ensurePortableNode(runtimeDir) {
   }
   fs.copyFileSync(extracted, cachedExe);
   fs.copyFileSync(cachedExe, nodeExe);
+  const license = path.join(extractDir, `node-v${NODE_VERSION}-win-x64`, "LICENSE");
+  if (fs.existsSync(license)) {
+    fs.copyFileSync(license, cachedLicense);
+    fs.copyFileSync(license, path.join(runtimeDir, "LICENSE"));
+  }
   fs.rmSync(extractDir, { recursive: true, force: true });
   try {
     fs.unlinkSync(zipPath);
@@ -139,13 +172,11 @@ async function main() {
   for (const name of [
     "INSTALL.bat",
     "Uninstall.bat",
+    // Linux scripts ship only in ForeverLAN-SteamDeck.zip (LF-normalized + Linux Node).
     "agent.js",
     "discover.js",
-    "start-agent.sh",
     "stamp-wow.mjs",
     "pick-wow.ps1",
-    "install-steamdeck.sh",
-    "STEAMDECK.md",
   ]) {
     const src = path.join(phase1, "friend-client", name);
     if (fs.existsSync(src)) fs.copyFileSync(src, path.join(out, name));
@@ -156,37 +187,49 @@ async function main() {
     httpPort: Number(cfg.listenPort || 8765),
     // hostUrl optional — agent auto-discovers on the LAN
   };
-  if (cfg.friendHostUrl) party.hostUrl = cfg.friendHostUrl;
+  if (cfg.friendHostUrl) {
+    party.hostUrl = cfg.friendHostUrl;
+    warnInternetHostUrl(cfg.friendHostUrl);
+  }
   fs.writeFileSync(path.join(out, "party.json"), JSON.stringify(party, null, 2), "utf8");
 
-  fs.writeFileSync(
-    path.join(out, "READ ME.txt"),
-    [
-      "Forever LAN",
-      "===========",
-      "",
-      "INSTALL",
-      "  Double-click INSTALL.bat",
-      "  When asked, pick your WoW: Forever folder",
-      "  (the folder with WowB.exe, usually _classic_beta_).",
-      "  Then in WoW: enable the ForeverLAN addon.",
-      "  That is everything. No websites. No command prompts.",
-      "",
-      "STEAM DECK / Linux",
-      "  See STEAMDECK.md — run: chmod +x install-steamdeck.sh && ./install-steamdeck.sh",
-      "",
-      "Optional in-game: type /combatlog once per session,",
-      "and use Push LAN (or logout) so data saves.",
-      "",
-      "UNINSTALL (after the LAN weekend)",
-      "  Double-click Uninstall.bat",
-      "  (or use \"Uninstall Forever LAN\" on your Desktop after install)",
-      "  Removes the agent, Startup entry, WoW addon, and local data.",
-      "  Your PC is back to how it was before Forever LAN.",
-      "",
-    ].join("\r\n"),
-    "utf8"
+  const readMe = [
+    "Forever LAN",
+    "===========",
+    "",
+    "INSTALL",
+    "  Double-click INSTALL.bat",
+    "  When asked, pick your WoW: Forever folder",
+    "  (the folder with WowB.exe, usually _classic_beta_).",
+    "  Then in WoW: enable the ForeverLAN addon.",
+    "  That is everything. No websites. No command prompts.",
+    "",
+  ];
+  if (cfg.friendHostUrl) {
+    readMe.push(
+      "REMOTE BETA",
+      "  This pack points at the ingest host over the Internet.",
+      `  Ingest: ${String(cfg.friendHostUrl).replace(/\/$/, "")}`,
+      "  Dashboard (if shared): ask the host — Cloudflare Access login.",
+      "  Play as usual — the agent syncs when online.",
+      ""
+    );
+  }
+  readMe.push(
+    "STEAM DECK / Linux",
+    "  Use ForeverLAN-SteamDeck.zip instead (ask the host) — this zip is Windows-only.",
+    "",
+    "Optional in-game: type /combatlog once per session,",
+    "and use Push LAN (or logout) so data saves.",
+    "",
+    "UNINSTALL (after the LAN weekend)",
+    "  Double-click Uninstall.bat",
+    "  (or use \"Uninstall Forever LAN\" on your Desktop after install)",
+    "  Removes the agent, Startup entry, WoW addon, and local data.",
+    "  Your PC is back to how it was before Forever LAN.",
+    ""
   );
+  fs.writeFileSync(path.join(out, "READ ME.txt"), readMe.join("\r\n"), "utf8");
 
   console.log("");
   console.log("Friend pack folder:");
@@ -196,7 +239,7 @@ async function main() {
   console.log(" ", zipPath);
   console.log("");
   console.log("Friends: unzip → INSTALL.bat → enable addon in WoW.");
-  console.log("Steam Deck: STEAMDECK.md / install-steamdeck.sh");
+  console.log("Steam Deck: node scripts/prepare-steamdeck-pack.mjs → ForeverLAN-SteamDeck.zip");
   console.log("After LAN: Uninstall.bat (or Desktop shortcut).");
 }
 

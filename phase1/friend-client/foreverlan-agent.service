@@ -1,0 +1,13 @@
+[Unit]
+Description=Forever LAN friend agent
+After=network-online.target
+
+[Service]
+Type=simple
+Environment=FOREVERLAN_FRIEND_AGENT=1
+ExecStart=/bin/bash %h/.local/share/ForeverLAN/start-agent.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

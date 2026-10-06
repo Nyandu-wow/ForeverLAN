@@ -1,4 +1,5 @@
 import http from "node:http";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,6 +20,11 @@ import {
   buildLookbackMoments,
 } from "./control-room.js";
 import { stampNow, displayTimeZone } from "../collector/wall-clock.js";
+import {
+  gateIngestHostnameRequest,
+  remoteSecurityModeEnabled,
+  remoteSecurityPublicMeta,
+} from "./remote-security.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const config = loadConfig();
@@ -140,7 +146,10 @@ function clientIp(req) {
     req.connection?.remoteAddress ||
     "";
   // Node may give ::ffff:192.168.1.5
-  return String(raw).replace(/^::ffff:/i, "") || "unknown";
+  const ip = String(raw).replace(/^::ffff:/i, "") || "unknown";
+  // Display/logging only (never auth): tunnel traffic all arrives from loopback.
+  const cf = String(req.headers?.["cf-connecting-ip"] || "").trim();
+  return cf && (ip === "127.0.0.1" || ip === "::1") ? `${cf} (via tunnel)` : ip;
 }
 
 function persistSeenClients() {
@@ -272,14 +281,24 @@ async function loadExisting() {
       if (i > 0 && i % 2000 === 0) await new Promise((r) => setImmediate(r));
     }
     if (droppedPartial) {
+      // Truncate only the torn tail (never rewrite the weekend log); keep the tail bytes aside.
       try {
-        const body = kept.length ? kept.join("\n") + "\n" : "";
-        fs.writeFileSync(eventsPath, body, "utf8");
+        const buf = fs.readFileSync(eventsPath);
+        const cut = buf.lastIndexOf(0x0a) + 1;
+        fs.writeFileSync(`${eventsPath}.torn-${Date.now()}.txt`, buf.subarray(cut));
+        fs.truncateSync(eventsPath, cut);
         hostLog(
-          `[host] recovered host-events.jsonl: dropped truncated final line (${kept.length} complete rows kept)`
+          `[host] recovered host-events.jsonl: truncated torn final line (${kept.length} complete rows kept; tail saved beside the log)`
         );
       } catch (err) {
-        hostError("[host] host-events recovery write failed:", err?.message || err);
+        hostError("[host] host-events recovery failed:", err?.message || err);
+      }
+    } else if (text.length && !endsWithNewline) {
+      // Complete last row without newline — next append must not glue onto it.
+      try {
+        fs.appendFileSync(eventsPath, "\n", "utf8");
+      } catch (err) {
+        hostError("[host] host-events newline repair failed:", err?.message || err);
       }
     }
   }
@@ -317,8 +336,19 @@ function persist(ev) {
   fs.appendFileSync(eventsPath, JSON.stringify(ev) + "\n", "utf8");
 }
 
+/** Cache files only (rebuildable from host-events.jsonl) — a lock/EPERM must never kill ingest. */
+function writeCacheFile(file, body) {
+  const tmp = `${file}.tmp`;
+  try {
+    fs.writeFileSync(tmp, body, "utf8");
+    fs.renameSync(tmp, file);
+  } catch (err) {
+    hostError(`[host] cache write failed (${path.basename(file)}):`, err?.message || err);
+  }
+}
+
 function savePartyState() {
-  fs.writeFileSync(partyStatePath, JSON.stringify(partyState, null, 2), "utf8");
+  writeCacheFile(partyStatePath, JSON.stringify(partyState, null, 2));
 }
 
 let lanSaveTimer = null;
@@ -326,7 +356,7 @@ function saveLanState(immediate = false) {
   const write = () => {
     lanSaveTimer = null;
     // Compact JSON — pretty-print + OneDrive sync was freezing the board.
-    fs.writeFileSync(lanStatePath, JSON.stringify(lanState), "utf8");
+    writeCacheFile(lanStatePath, JSON.stringify(lanState));
   };
   if (immediate) {
     if (lanSaveTimer) clearTimeout(lanSaveTimer);
@@ -445,6 +475,19 @@ function broadcast(ev, partyUpdated = false, lanUpdated = false) {
     lan: lanUpdated ? lanState : undefined,
     board_version: lanState.meta?.board_version || 0,
   })}\n\n`;
+  for (const res of sseClients) {
+    try {
+      res.write(payload);
+    } catch {
+      sseClients.delete(res);
+    }
+  }
+}
+
+/** Keep SSE alive through Cloudflare Tunnel / proxies (idle ~100s cut). */
+function sseHeartbeat() {
+  if (!sseClients.size) return;
+  const payload = `: ping ${Date.now()}\n\n`;
   for (const res of sseClients) {
     try {
       res.write(payload);
@@ -679,22 +722,22 @@ function readBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
     let size = 0;
+    let tooLarge = false;
     req.on("data", (c) => {
+      if (tooLarge) return;
       size += c.length;
       if (size > MAX_EVENT_BODY_BYTES) {
+        tooLarge = true;
+        chunks.length = 0;
         const err = new Error(`body too large (max ${MAX_EVENT_BODY_BYTES} bytes)`);
         err.statusCode = 413;
         reject(err);
-        try {
-          req.destroy();
-        } catch {
-          /* ignore */
-        }
         return;
       }
       chunks.push(c);
     });
     req.on("end", () => {
+      if (tooLarge) return;
       const raw = Buffer.concat(chunks).toString("utf8");
       if (!raw) return resolve(null);
       try {
@@ -728,7 +771,8 @@ function checkIngestAuth(req) {
     req.headers["x-foreverlan-token"] ||
     (String(req.headers.authorization || "").match(/^Bearer\s+(.+)$/i) || [])[1] ||
     "";
-  if (got !== expected) {
+  const digest = (s) => crypto.createHash("sha256").update(String(s)).digest();
+  if (!crypto.timingSafeEqual(digest(got), digest(expected))) {
     return { ok: false, status: 401, body: { error: "unauthorized" } };
   }
   return { ok: true };
@@ -753,8 +797,34 @@ const PUBLIC_TYPES = {
   ".svg": "image/svg+xml",
 };
 
-const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+const server = http.createServer((req, res) => {
+  handleRequest(req, res).catch((err) => {
+    hostError("[host] request failed:", req.method, req.url, err?.message || err);
+    try {
+      if (!res.headersSent) sendJson(res, 500, { error: "internal error" });
+      else res.end();
+    } catch {
+      /* socket already gone */
+    }
+  });
+});
+
+async function handleRequest(req, res) {
+  // Constant base: a malformed Host header must not throw (Host is only read by the ingest gate).
+  let url;
+  try {
+    url = new URL(req.url || "/", "http://localhost");
+  } catch {
+    return sendJson(res, 400, { error: "bad request" });
+  }
+
+  // Ingest public hostname (WAN): POST /events only — board stays on localhost (push-only).
+  {
+    const gate = gateIngestHostnameRequest(req, url.pathname, config);
+    if (gate.block) {
+      return sendJson(res, gate.status || 403, gate.body || { error: "forbidden" });
+    }
+  }
 
   // Always answer health fast — even while the event log is still loading.
   if (req.method === "GET" && url.pathname === "/health") {
@@ -812,6 +882,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "GET" && url.pathname === "/discover") {
     const ip = clientIp(req);
     noteClient(ip, "discovery probe (looking for Forever LAN host)");
+    const remote = remoteSecurityPublicMeta(config);
     return sendJson(res, 200, {
       ok: true,
       v: 1,
@@ -822,6 +893,8 @@ const server = http.createServer(async (req, res) => {
       name: config.lanName || "Forever LAN",
       session_id: lanState.session_id,
       tokenRequired: Boolean(process.env.FOREVERLAN_TOKEN || config.lanToken),
+      // Extra keys are OK for frozen clients (CLIENT_CONTRACT).
+      remote_security: remote,
     });
   }
 
@@ -904,7 +977,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && url.pathname === "/stream") {
-    while (sseClients.size >= 8) {
+    // Remote beta: several dashboard tabs × friends watching over the tunnel.
+    while (sseClients.size >= 24) {
       const oldest = sseClients.values().next().value;
       sseClients.delete(oldest);
       try {
@@ -915,10 +989,12 @@ const server = http.createServer(async (req, res) => {
     }
     res.writeHead(200, {
       "content-type": "text/event-stream",
-      "cache-control": "no-cache",
+      "cache-control": "no-cache, no-transform",
       connection: "keep-alive",
+      "x-accel-buffering": "no",
       "access-control-allow-origin": "*",
     });
+    if (typeof res.flushHeaders === "function") res.flushHeaders();
     res.write("\n");
     res.write(
       `data: ${JSON.stringify({
@@ -948,12 +1024,16 @@ const server = http.createServer(async (req, res) => {
     } catch (err) {
       const code = Number(err.statusCode) || 400;
       ingestLog(`BAD REQUEST ${ip} - ${String(err.message || err)}`);
+      if (code === 413) {
+        res.on("finish", () => req.destroy());
+        return sendJson(res, 413, { error: String(err.message || err) }, { connection: "close" });
+      }
       return sendJson(res, code, { error: String(err.message || err) });
     }
   }
 
   sendJson(res, 404, { error: "not found" });
-});
+}
 
 const listenHost = config.listenHost || "0.0.0.0";
 const listenPort = Number(config.listenPort || 8765);
@@ -967,10 +1047,23 @@ if (bindingLanWide && !configuredToken) {
   );
   process.exit(1);
 }
-if (config.publicBaseUrl && String(config.publicBaseUrl).startsWith("https://")) {
+if (configuredToken && /GENERATE_A_LONG_RANDOM_TOKEN/i.test(configuredToken)) {
+  hostError(
+    "[host] REFUSING to start: lanToken is still the public placeholder from config.example.json.",
+    "Set a long random lanToken in config.json, then rebuild the friend packs."
+  );
+  process.exit(1);
+}
+if (remoteSecurityModeEnabled(config.remoteSecurityMode)) {
+  const ingest = String(config.ingestPublicHostname || "").trim() || "(unset)";
   hostLog(
-    `[host] NOTE: publicBaseUrl=${config.publicBaseUrl} is optional WAN;`,
-    "dashboard GETs are unauthenticated — do not tunnel for the LAN weekend."
+    `[host] remoteSecurityMode=wan — push-only: ingest ${ingest} accepts POST /events (lanToken);`,
+    "board stays on http://127.0.0.1/ (leave dashboard hostname off the tunnel). Tunnel off for house LAN weekend."
+  );
+} else if (config.publicBaseUrl && String(config.publicBaseUrl).startsWith("https://")) {
+  hostLog(
+    `[host] NOTE: publicBaseUrl=${config.publicBaseUrl} is optional WAN leftover;`,
+    "set remoteSecurityMode=wan + ingestPublicHostname before tunneling; do not tunnel for the LAN weekend."
   );
 }
 {
@@ -1002,6 +1095,9 @@ server.listen(listenPort, listenHost, () => {
       sessionId: lanState.session_id,
     });
   }
+
+  // Cloudflare (and many proxies) idle-cut SSE ~100s; comment frames keep the tunnel quiet.
+  setInterval(sseHeartbeat, 20_000).unref?.();
 
   // Load the weekend log after listen so /health answers during boot.
   // Warm lan-state.json (if any) is already served so Live does not flash empty.
