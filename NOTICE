@@ -1,21 +1,19 @@
 Forever LAN — third-party notices
 =================================
 
-The MIT license covers original Forever LAN code (addon Lua, collector, host,
-dashboard scripts, packaging). It does **not** cover Blizzard Entertainment
-content.
+Original Forever LAN code is **All Rights Reserved** (see `LICENSE`).
+That does **not** cover Blizzard Entertainment content.
 
-Blizzard-owned material (not MIT)
----------------------------------
+Blizzard-owned material (not Forever LAN)
+-----------------------------------------
 - World of Warcraft names, UI, and game data
 - Dashboard key art / logos derived from Blizzard press-kit images
   (`phase1/host/public` forever-lan-bg*, wow-forever-logo*)
 - Zone stills (`assets/zones`) from warcraft.wiki.gg screenshots of the game
 - Map tiles (`assets/maps`) extracted from the Forever beta client / Forever Atlas
 
-Do not treat those files as MIT-licensed. They must not be republished as
-original Forever LAN work. A public CurseForge addon zip contains only the
-Lua/TOC/README/CHANGELOG/LICENSE (no map art).
+Do not treat those files as Forever LAN original work. A public CurseForge
+addon zip contains only the Lua/TOC/README/CHANGELOG/LICENSE (no map art).
 
 Bundled runtimes (friend / Steam Deck packs only)
 -------------------------------------------------

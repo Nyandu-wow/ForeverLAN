@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.68
+
+- License set to **All Rights Reserved** (matches common CurseForge WoW addon practice; still free to download and use).
+
 ## 0.1.67 — Public CurseForge release
 
 ### Changed

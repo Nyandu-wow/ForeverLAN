@@ -64,6 +64,6 @@ Dashboard metrics use **Logged / Counted / Guessed**. Distance is sampled path l
 
 ## License
 
-Original code: **MIT** (`LICENSE`). Blizzard art and zone stills are not MIT — see `NOTICE` if present.
+Original code: **All Rights Reserved** (`LICENSE`). Free to download and use; no permission to resell or rebrand. Blizzard art and zone stills are separate — see `NOTICE`.
 
-Addon source: https://github.com/Nyandu-wow/ForeverLAN
+Addon source (for transparency): https://github.com/Nyandu-wow/ForeverLAN

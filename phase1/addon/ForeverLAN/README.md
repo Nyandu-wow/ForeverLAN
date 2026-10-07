@@ -89,6 +89,8 @@ World of Warcraft: Forever
 
 ## License
 
-MIT — see `LICENSE`.
+**All Rights Reserved** — see `LICENSE`.
+
+Free to download and use via CurseForge. Source is visible for transparency; that does not grant reuse or rebrand rights.
 
 Source: https://github.com/Nyandu-wow/ForeverLAN

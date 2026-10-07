@@ -13,7 +13,7 @@
 ]]
 
 local ADDON_NAME = ...
-local ADDON_VERSION = "0.1.67"
+local ADDON_VERSION = "0.1.68"
 local SV_SCHEMA = 3
 -- Optional friend-pack inject (ForeverLAN_Party.lua). CurseForge ships empty.
 local BUILTIN_ROSTER = (ForeverLAN_Party and ForeverLAN_Party.roster) or {}
