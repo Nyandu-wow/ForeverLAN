@@ -28,8 +28,12 @@ const repoRoot = path.resolve(phase1, "..");
 function loadDotEnv() {
   for (const p of [path.join(repoRoot, ".env"), path.join(phase1, ".env")]) {
     if (!fs.existsSync(p)) continue;
-    for (const line of fs.readFileSync(p, "utf8").split(/\r?\n/)) {
-      const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+    // Strip UTF-8 BOM (Windows editors often write one).
+    const raw = fs.readFileSync(p, "utf8").replace(/^\uFEFF/, "");
+    for (const line of raw.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const m = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
       if (!m) continue;
       let v = m[2].trim();
       if (
