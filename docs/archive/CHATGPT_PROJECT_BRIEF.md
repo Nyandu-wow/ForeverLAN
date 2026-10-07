@@ -2,7 +2,7 @@
 
 **How to use this file:** Paste this whole document into a ChatGPT Project / custom GPT knowledge, or as the first message. When asking for help, say which layer you mean (`addon` / `collector` / `host` / `dashboard` / `friend pack`) and paste any relevant snippet. Prefer proposing changes that respect the **locks** below.
 
-**Owner:** the host (product). **Repo:** local Forever LAN workspace (`FOREVER`).  
+**Owner:** product host. **Repo:** local Forever LAN workspace (`FOREVER`).  
 **Brief date:** 2026-09-30 · Addon version in tree: **0.1.38**
 
 ---
@@ -12,7 +12,7 @@
 **Forever LAN** is a **one-weekend, local LAN companion** for a World of Warcraft: **Forever** leveling party at a friend's house.
 
 - the host PC = **host** (dashboard + event ingest).
-- Friends install a zip (addon + silent agent). They play; telemetry flows to the host's board.
+- Friends install a zip (addon + silent agent). They play; telemetry flows to the host board.
 - Product vibe: **ESPN race control + Strava personal stats + Mario Party chaos**, WoW flavor.
 - **Not** a SaaS, not anti-cheat, not multi-weekend analytics, not cloud.
 
@@ -167,7 +167,7 @@ When proposing metrics: check `CAPABILITY_MATRIX.md`. If status is UNAVAILABLE /
 **Hot host fix:** `restart-host.bat` — do not change token.  
 **Backup / reset:** `backup-weekend-data.bat` / `reset-weekend-data.bat` (reset only when intentional, host stopped).
 
-WoW Addon deploy path on the host's machine (dev):  
+WoW Addon deploy path on the host machine (dev):  
 `C:\Games\FOREVER\World of Warcraft\_classic_beta_\Interface\AddOns\ForeverLAN\`  
 Copy from `addon/ForeverLAN/` then `/reload` in-game.
 
@@ -199,7 +199,7 @@ Copy from `addon/ForeverLAN/` then `/reload` in-game.
 ## 10. Mini system prompt (optional paste)
 
 ```text
-You are helping the host build Forever LAN: a one-weekend local LAN companion for WoW Forever. the host PC hosts the dashboard; friends run an addon + silent collector. One dataset, original event timestamps, Friday→Saturday offline catch-up. Discovery never gates collection. Honesty: Logged / Counted / Guessed. No SaaS, accounts, cloud DB, or invented WoW APIs. Mid-weekend: host/dashboard may change; friend addon + lanToken stay frozen. Pipeline: addon SV (+ optional combatlog) → collector outbox → POST /events → host jsonl → /lan SSE dashboard. Push LAN (or logout) flushes SavedVariables; there is no ForceSave. Prefer rebuilding views from events. Current focus: Phase 4 friend packs + host runbook; Profession Party Slice A/B shipped; gather telemetry not confirmed. Check CAPABILITY_MATRIX before claiming Forever can expose something.
+You are helping build Forever LAN: a one-weekend local LAN companion for WoW Forever. the host PC hosts the dashboard; friends run an addon + silent collector. One dataset, original event timestamps, Friday→Saturday offline catch-up. Discovery never gates collection. Honesty: Logged / Counted / Guessed. No SaaS, accounts, cloud DB, or invented WoW APIs. Mid-weekend: host/dashboard may change; friend addon + lanToken stay frozen. Pipeline: addon SV (+ optional combatlog) → collector outbox → POST /events → host jsonl → /lan SSE dashboard. Push LAN (or logout) flushes SavedVariables; there is no ForceSave. Prefer rebuilding views from events. Current focus: Phase 4 friend packs + host runbook; Profession Party Slice A/B shipped; gather telemetry not confirmed. Check CAPABILITY_MATRIX before claiming Forever can expose something.
 ```
 
 ---

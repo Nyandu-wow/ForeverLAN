@@ -1,6 +1,6 @@
 # Hosting — Forever LAN on the event LAN
 
-One host PC (the host) runs the dashboard and receives events.
+One host PC runs the dashboard and receives events.
 Friends use **plug-and-play install** ([`friend-client/README.md`](friend-client/README.md)) — they do not configure URLs.
 
 ```text
@@ -13,7 +13,7 @@ Friend: INSTALL.bat → silent agent
 
 Discovery is **not** required before collecting. If the host is down (Friday night), friends still queue telemetry; Saturday bring-up flushes catch-up with original `ev.ts`.
 
-## A. Host PC (the host) — weekend checklist
+## A. Host PC — weekend checklist
 
 1. **Firewall once** (Admin): `scripts\open-lan-firewall.bat`
 2. **Start for the weekend:** `scripts\start-weekend.bat` (host + your collector)

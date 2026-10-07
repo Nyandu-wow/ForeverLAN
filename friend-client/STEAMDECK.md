@@ -2,7 +2,7 @@
 
 The Windows friend zip (`INSTALL.bat`) does **not** run on SteamOS. Use the Deck pack instead: same host (the host PC), Deck only sends events.
 
-## On the host PC (host-pc)
+## On the host PC
 
 1. Admin once: `scripts\open-lan-firewall.bat`
 2. `scripts\start-weekend.bat`

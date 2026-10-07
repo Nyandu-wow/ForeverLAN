@@ -1,5 +1,5 @@
 @echo off
-REM the host: rebuild Steam Deck zip (Linux Node + LF shell + Unix ZIP paths).
+REM Host: rebuild Steam Deck zip (Linux Node + LF shell + Unix ZIP paths).
 cd /d "%~dp0.."
 node scripts\prepare-steamdeck-pack.mjs
 if errorlevel 1 exit /b 1

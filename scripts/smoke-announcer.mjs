@@ -37,7 +37,7 @@ function assertNoFabrication(voiced, sourceText) {
     ts: "2026-11-07T12:00:00Z",
   };
   const v = announceFromActivity(a);
-  assert.match(v.headline, /DING|LEVEL|KLAYNZ|ANOTHER/i);
+  assert.match(v.headline, /DING|LEVEL|SAM|ANOTHER/i);
   assert.ok(v.subline);
   assert.match(`${v.headline} ${v.subline}`, /14/);
   assertNoFabrication(v, a.text);
@@ -54,7 +54,7 @@ function assertNoFabrication(voiced, sourceText) {
   };
   const v = announceFromActivity(a);
   assert.equal(v.category, "LEAD_CHANGE");
-  assert.match(v.headline, /LEAD|ESCAPED|SINUN|NEW LEADER/i);
+  assert.match(v.headline, /LEAD|ESCAPED|CASEY|NEW LEADER/i);
   console.log("ok  lead change", v.headline);
 }
 
@@ -68,7 +68,7 @@ function assertNoFabrication(voiced, sourceText) {
   };
   const v = announceFromActivity(a);
   assert.equal(v.category, "DEATH");
-  assert.match(v.headline, /DEATH|FALLEN|SPIRITS|NYANDU/i);
+  assert.match(v.headline, /DEATH|FALLEN|SPIRITS|ALEX/i);
   console.log("ok  death", v.headline);
 }
 
@@ -102,7 +102,7 @@ function assertNoFabrication(voiced, sourceText) {
   assert.equal(v.category, "LEVEL_STALL");
   assert.match(`${v.headline} ${v.subline}`, /44/);
   assert.match(`${v.headline} ${v.subline}`, /4/);
-  assert.match(`${v.headline} ${v.subline}`, /BAUDELAIRE/i);
+  assert.match(`${v.headline} ${v.subline}`, /VALE/i);
   assertNoFabrication(v, a.text);
   // deterministic across calls
   const v2 = announceFromActivity(a);
@@ -128,7 +128,7 @@ function assertNoFabrication(voiced, sourceText) {
   ]);
   assert.equal(pulse.kind, "BIG_SWING");
   const voiced = announceRacePulse(pulse);
-  assert.match(voiced.headline, /SINUN|\+5/i);
+  assert.match(voiced.headline, /CASEY|\+5/i);
   assert.match(voiced.detail || "", /14|19|Jordan|rude|comeback|gap/i);
   console.log("ok  race pulse", voiced.headline, "/", voiced.detail);
 }

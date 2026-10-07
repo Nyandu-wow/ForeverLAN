@@ -1,5 +1,5 @@
 /**
- * One-off analysis of the host's 2026-09-30 Forever multi-char session.
+ * One-off analysis of a 2026-09-30 Forever multi-char session.
  * Run: node scripts/analyze-session-sv.mjs
  */
 import fs from "node:fs";
@@ -92,7 +92,7 @@ for (const f of files) {
     folder,
     total: snap.events.length,
     foreignSurnameEvents: foreign.length,
-    bareNyanduEvents: shortOnly.length,
+    bareAlexEvents: shortOnly.length,
     sampleForeign: foreign.slice(0, 3).map((e) => ({ id: e.id, type: e.type, character: e.character })),
   });
 }

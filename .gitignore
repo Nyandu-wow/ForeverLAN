@@ -43,6 +43,10 @@ backups/
 !party.example.json
 !**/party.example.json
 
+# Local weekend roster (public ForeverLAN_Party.lua stays empty)
+friend-client/ForeverLAN_Party.local.lua
+**/ForeverLAN_Party.local.lua
+
 # OS / editor
 .DS_Store
 Thumbs.db

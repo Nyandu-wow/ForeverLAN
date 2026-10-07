@@ -1,5 +1,5 @@
 /**
- * the host: quick weekend status — is the host up, who pushed lately?
+ * Host: quick weekend status — is the host up, who pushed lately?
  *
  *   node scripts/weekend-status.mjs
  *   or double-click scripts/weekend-status.bat

@@ -15,8 +15,8 @@ const maps = [];
 const playerDeaths = [];
 const pvpKills = [];
 const partyKillDestTypes = new Map();
-let nyanduDied = 0;
-let klaynzDied = 0;
+let alexDied = 0;
+let samDied = 0;
 let recent = [];
 
 function nameOf(quoted) {
@@ -39,8 +39,8 @@ for await (const line of rl) {
         line: line.trim(),
         before: recent.slice(0, -1).filter((l) => /DAMAGE|PARTY_KILL|ENVIRONMENTAL/.test(l)).slice(-3),
       });
-      if (/Alex/i.test(line)) nyanduDied++;
-      if (/Sam/i.test(line)) klaynzDied++;
+      if (/Alex/i.test(line)) alexDied++;
+      if (/Sam/i.test(line)) samDied++;
     }
   }
   if (rest.startsWith("PARTY_KILL,")) {
@@ -60,7 +60,7 @@ console.log("ZONE_CHANGE", zones.length);
 zones.forEach((l) => console.log(" ", l));
 console.log("\nMAP_CHANGE", maps.length);
 maps.forEach((l) => console.log(" ", l));
-console.log("\nPLAYER UNIT_DIED", playerDeaths.length, "alex", nyanduDied, "sam", klaynzDied);
+console.log("\nPLAYER UNIT_DIED", playerDeaths.length, "alex", alexDied, "sam", samDied);
 for (const d of playerDeaths) {
   console.log("---");
   console.log(d.line);

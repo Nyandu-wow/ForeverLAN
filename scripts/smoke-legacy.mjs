@@ -101,7 +101,7 @@ assert.equal(isLegacyProfessionName("Mining"), false);
   });
   assert.equal(v.category, "LEGACY_DING");
   assert.match(v.headline + v.subline, /45/);
-  assert.match(v.headline + v.subline, /BIGGLESWORTH|LEGACY/i);
+  assert.match(v.headline + v.subline, /RIVER|LEGACY/i);
   const v2 = announceFromActivity({
     kind: "MOMENT",
     text: "LEGACY MILESTONE — Sam reached Tailoring 225.",

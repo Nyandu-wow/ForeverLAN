@@ -1,5 +1,5 @@
 /**
- * the host runs this once before the weekend.
+ * Host runs this once before the weekend.
  * Builds a zip-ready folder friends can use with a single double-click (INSTALL.bat).
  *
  *   node scripts/prepare-friend-pack.mjs
@@ -14,6 +14,7 @@ import { execFileSync } from "node:child_process";
 import https from "node:https";
 import { createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
+import { resolveFriendPartySource } from "./lib/friend-party-source.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -128,13 +129,10 @@ async function ensurePortableNode(runtimeDir) {
   console.log("portable node: ready + cached");
 }
 
-/** Inject weekend roster (not on CurseForge). Prepend ForeverLAN_Party.lua to TOC load order. */
-function injectFriendPartyDefaults(addonDir) {
-  const partySrc = path.join(root, "friend-client", "ForeverLAN_Party.lua");
-  if (!fs.existsSync(partySrc)) {
-    throw new Error("friend-client/ForeverLAN_Party.lua missing");
-  }
-  fs.copyFileSync(partySrc, path.join(addonDir, "ForeverLAN_Party.lua"));
+/** Inject weekend roster (not on CurseForge). Prefers .local.lua, else config.json. */
+function injectFriendPartyDefaults(addonDir, cfg) {
+  const src = resolveFriendPartySource(root, cfg);
+  src.write(path.join(addonDir, "ForeverLAN_Party.lua"));
   for (const tocName of ["ForeverLAN.toc", "ForeverLAN_Camelot.toc"]) {
     const tocPath = path.join(addonDir, tocName);
     if (!fs.existsSync(tocPath)) continue;
@@ -144,7 +142,7 @@ function injectFriendPartyDefaults(addonDir) {
       fs.writeFileSync(tocPath, toc, "utf8");
     }
   }
-  console.log("friend party defaults: injected into", addonDir);
+  console.log("friend party defaults:", src.label, "→", addonDir);
 }
 
 function zipFriendPack(folderPath) {
@@ -183,12 +181,12 @@ async function main() {
 
   copyDir(path.join(root, "collector"), path.join(out, "collector"));
   copyDir(path.join(root, "addon", "ForeverLAN"), path.join(out, "addon", "ForeverLAN"));
-  injectFriendPartyDefaults(path.join(out, "addon", "ForeverLAN"));
+  injectFriendPartyDefaults(path.join(out, "addon", "ForeverLAN"), cfg);
   // Optional local mirror under friend-pack/ (gitignored) for quick inspection.
   const mirror = path.join(root, "friend-pack", "ForeverLAN");
   fs.rmSync(mirror, { recursive: true, force: true });
   copyDir(path.join(root, "addon", "ForeverLAN"), mirror);
-  injectFriendPartyDefaults(mirror);
+  injectFriendPartyDefaults(mirror, cfg);
 
   for (const name of [
     "INSTALL.bat",

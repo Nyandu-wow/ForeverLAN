@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Forever LAN — Steam Deck / SteamOS client (host is the host's Windows PC)
+# Forever LAN — Steam Deck / SteamOS client (host is the Windows PC running Forever LAN)
 #
 # Usage (Desktop Mode → Konsole), from the unzipped Steam Deck pack:
 #   bash install-steamdeck.sh

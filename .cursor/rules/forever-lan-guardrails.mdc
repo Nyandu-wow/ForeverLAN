@@ -30,5 +30,5 @@ alwaysApply: true
 - **Phase 4 active:** friend INSTALL pack + host LAN runbook (beta artifacts, not immutable releases).
 - CurseForge / LAN DNS productization: optional, parked.
 - Phase 3 storytelling chapters: deferred until after the LAN (dashboard flavour OK now).
-- Roster: Alex River / Sam Hill / Jordan Vale / Casey Brook unless the host changes it. Forever names are always First Last.
+- Roster: local `config.json` only (never commit weekend names). Forever names are always First Last.
 - End every task with: changed / learned / tested / uncertain / Forever-client-test needed?

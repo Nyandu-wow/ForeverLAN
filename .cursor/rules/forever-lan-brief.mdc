@@ -5,9 +5,9 @@ alwaysApply: true
 
 # Forever LAN — Product brief
 
-Local LAN companion for **one** World of Warcraft: Forever leveling weekend. the host PC is the host; friends play at the house. Not a SaaS product.
+Local LAN companion for **one** World of Warcraft: Forever leveling weekend. The host PC runs the dashboard; friends play on the LAN. Not a SaaS product.
 
-**Roster lock:** Alex River, Sam Hill, Jordan Vale, Casey Brook (unless the host changes it). Forever names are always **First Last**; the full name (or GUID) is identity — never match on first name alone.
+**Roster:** set in local `config.json` (`lanRoster` / aliases / board exclude) — never hardcode weekend names in the public tree. Forever names are always **First Last**; the full name (or GUID) is identity — never match on first name alone.
 
 ## Scope lock
 
@@ -18,7 +18,7 @@ Local LAN companion for **one** World of Warcraft: Forever leveling weekend. the
 
 ## Friday → Saturday catch-up (design locked)
 
-Friends may start playing **Friday before the host dashboard is running**. Their addons/collectors retain events locally with **original `ev.ts` timestamps**. When the host starts the host on Saturday, clients **catch up their backlog first**, then continue live ingestion.
+Friends may start playing **Friday before the host dashboard is running**. Their addons/collectors retain events locally with **original `ev.ts` timestamps**. When the host starts on Saturday, clients **catch up their backlog first**, then continue live ingestion.
 
 **Discovery is never a prerequisite for local collection.** Friend agents start the collector immediately, queue to the local outbox while the host is down, and only use `/discover` (plus beacon/scan) to find or refresh the host URL for egress.
 
@@ -26,7 +26,7 @@ Do **not** optimize the system around the assumption that the host is online for
 
 ## Hosting model
 
-the host PC is the local Forever LAN host (at the friend’s house). The dashboard is served directly from that PC over the LAN. **No** cloud database, WAN tunnel, or Internet dependency is required for the MVP.
+The host PC is the local Forever LAN host (at the friend’s house). The dashboard is served directly from that PC over the LAN. **No** cloud database, WAN tunnel, or Internet dependency is required for the MVP.
 
 Future LAN-friendly hostname / CurseForge packaging may still wait; **friend INSTALL pack + LAN host runbook are active (Phase 4 beta artifacts).** See `HOSTING.md` and `friend-client/README.md`. Rebuild packs whenever meaningful code changes — do not treat ZIPs as an immutable freeze.
 
@@ -65,7 +65,7 @@ Keep the distinction explicit in code and UI labels where it matters.
 
 ## Trust model (friends)
 
-This is a **LAN party tool, not an anti-cheat system**. Each client syncs the character that player is actually playing. Remembered names (Alex, Sam, Jordan, Casey) also sync when they join that player's party. Authenticated clients submit those events; the host validates schema/identity and deduplicates. Combat-log data is **enrichment**, not a second player identity. Auto-roster prefers characters that push `is_self` addon telemetry so the host watches people who actually play.
+This is a **LAN party tool, not an anti-cheat system**. Each client syncs the character that player is actually playing. Remembered roster names also sync when they join that player's party. Authenticated clients submit those events; the host validates schema/identity and deduplicates. Combat-log data is **enrichment**, not a second player identity. Auto-roster prefers characters that push `is_self` addon telemetry so the host watches people who actually play.
 
 ## Pipeline (architecture)
 

@@ -68,14 +68,14 @@ console.log("thresholds", CLIENT_STATUS_THRESHOLDS);
     { character: "Alex", level: 13 },
   ]);
   assert.ok(["NEW_LEADER", "LEAD_CHANGED"].includes(lead.kind));
-  assert.match(lead.headline, /SWINDOR|LEADS|AHEAD|LEAD/i);
+  assert.match(lead.headline, /JORDAN|LEADS|AHEAD|LEAD/i);
 
   const swing = buildRacePulse([
     { character: "Jordan", level: 18 },
     { character: "Alex", level: 14 },
   ]);
   assert.equal(swing.kind, "BIG_SWING");
-  assert.match(swing.headline, /\+4|SWINDOR/i);
+  assert.match(swing.headline, /\+4|JORDAN/i);
   console.log("ok  race pulse tie/lead/swing");
 }
 
@@ -83,7 +83,7 @@ console.log("thresholds", CLIENT_STATUS_THRESHOLDS);
 {
   const moments = buildLookbackMoments({
     sinceIso: iso(now - 3600),
-    racePulse: { kind: "LEAD_CHANGED", headline: "SWINDOR TAKES THE LEAD", detail: "L14", leader: "Jordan" },
+    racePulse: { kind: "LEAD_CHANGED", headline: "JORDAN TAKES THE LEAD", detail: "L14", leader: "Jordan" },
     activity: [
       { kind: "DING", text: "Alex dinged 13", character: "Alex", ts: iso(now - 100) },
       { kind: "DEATH", text: "Alex died", character: "Alex", ts: iso(now - 90) },
@@ -95,7 +95,7 @@ console.log("thresholds", CLIENT_STATUS_THRESHOLDS);
     limit: 5,
   });
   assert.ok(moments.length >= 2);
-  assert.ok(moments.some((m) => /SWINDOR|LEAD/i.test(m.text)));
+  assert.ok(moments.some((m) => /JORDAN|LEAD/i.test(m.text)));
   assert.ok(!moments.some((m) => m.kind === "ZONE"));
   console.log("ok  lookback moments");
 }
@@ -355,7 +355,7 @@ console.log("thresholds", CLIENT_STATUS_THRESHOLDS);
   ]);
   const board = session.getPublicState();
   assert.ok((board.activity || []).some((a) => /levelers in Dun Morogh/.test(a.text || "")));
-  assert.match(board.headline?.text || "", /DEATH|FALLEN|SPIRITS|NYANDU/i);
+  assert.match(board.headline?.text || "", /DEATH|FALLEN|SPIRITS|ALEX/i);
   assert.doesNotMatch(board.headline?.text || "", /ZONE CHANGE/i);
   console.log("ok  headline prefers a death over a zone pile-up", board.headline?.text);
 }

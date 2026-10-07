@@ -1,7 +1,7 @@
 # Forever LAN — frozen client contract (weekend lock)
 
 When the LAN weekend starts, **friend addons + friend agents are FINAL**.
-the host may still restart or update the **host / dashboard** on his PC.
+The host may still restart or update the **host / dashboard** on his PC.
 
 Friends must keep working through short host downtime (outbox + retry + rediscover).
 

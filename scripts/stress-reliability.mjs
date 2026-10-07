@@ -302,8 +302,8 @@ test("findSavedVariableFiles discovers account + per-character paths", () => {
   const client = path.join(tmpRoot, "wow-client");
   const account = path.join(client, "WTF", "Account", "TEST");
   const accountSv = path.join(account, "SavedVariables", "ForeverLAN.lua");
-  const charA = path.join(account, "Forever", "NyanduBigglesworth", "SavedVariables", "ForeverLAN.lua");
-  const charB = path.join(account, "Forever", "NyanduDostoevsky", "SavedVariables", "ForeverLAN.lua");
+  const charA = path.join(account, "Forever", "AlexRiver", "SavedVariables", "ForeverLAN.lua");
+  const charB = path.join(account, "Forever", "AlexBrook", "SavedVariables", "ForeverLAN.lua");
   writeAccountSv(accountSv, {
     pending: [{ id: "legacy-ambig", type: "DING", ts: 1, character: "Alex" }],
   });
@@ -315,8 +315,8 @@ test("findSavedVariableFiles discovers account + per-character paths", () => {
   });
   const found = findSavedVariableFiles(client).map((p) => p.replace(/\\/g, "/"));
   assert.ok(found.some((p) => p.endsWith("Account/TEST/SavedVariables/ForeverLAN.lua")));
-  assert.ok(found.some((p) => p.includes("/NyanduBigglesworth/SavedVariables/")));
-  assert.ok(found.some((p) => p.includes("/NyanduDostoevsky/SavedVariables/")));
+  assert.ok(found.some((p) => p.includes("/AlexRiver/SavedVariables/")));
+  assert.ok(found.some((p) => p.includes("/AlexBrook/SavedVariables/")));
   assert.equal(found.length, 3);
 
   const all = [];

@@ -22,6 +22,7 @@ import { execFileSync } from "node:child_process";
 import https from "node:https";
 import { createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
+import { resolveFriendPartySource } from "./lib/friend-party-source.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -41,12 +42,9 @@ function loadHostConfig() {
 }
 
 /** Weekend roster for friend/Deck packs only (not CurseForge). */
-function injectFriendPartyDefaults(addonDir) {
-  const partySrc = path.join(root, "friend-client", "ForeverLAN_Party.lua");
-  if (!fs.existsSync(partySrc)) {
-    throw new Error("friend-client/ForeverLAN_Party.lua missing");
-  }
-  fs.copyFileSync(partySrc, path.join(addonDir, "ForeverLAN_Party.lua"));
+function injectFriendPartyDefaults(addonDir, cfg) {
+  const src = resolveFriendPartySource(root, cfg);
+  src.write(path.join(addonDir, "ForeverLAN_Party.lua"));
   for (const tocName of ["ForeverLAN.toc", "ForeverLAN_Camelot.toc"]) {
     const tocPath = path.join(addonDir, tocName);
     if (!fs.existsSync(tocPath)) continue;
@@ -56,6 +54,7 @@ function injectFriendPartyDefaults(addonDir) {
       fs.writeFileSync(tocPath, toc, "utf8");
     }
   }
+  console.log("friend party defaults:", src.label, "→", addonDir);
 }
 
 function toLf(text) {
@@ -273,14 +272,14 @@ async function main() {
   copyDir(path.join(root, "addon", "ForeverLAN"), path.join(out, "addon", "ForeverLAN"), {
     textExts: new Set([".toc", ".lua", ".md", ".txt"]),
   });
-  injectFriendPartyDefaults(path.join(out, "addon", "ForeverLAN"));
+  injectFriendPartyDefaults(path.join(out, "addon", "ForeverLAN"), cfg);
   // Keep friend-pack/ addon mirror aligned whenever Deck packs rebuild.
   const mirror = path.join(root, "friend-pack", "ForeverLAN");
   fs.rmSync(mirror, { recursive: true, force: true });
   copyDir(path.join(root, "addon", "ForeverLAN"), mirror, {
     textExts: new Set([".toc", ".lua", ".md", ".txt"]),
   });
-  injectFriendPartyDefaults(mirror);
+  injectFriendPartyDefaults(mirror, cfg);
 
   for (const name of [
     "agent.js",
@@ -331,7 +330,7 @@ async function main() {
       "4. In WoW: enable ForeverLAN → /reload",
       "   Optional: /combatlog once, Push LAN after sessions",
       "",
-      "Host (the host): same Wi-Fi, start-weekend.bat, firewall open.",
+      "Host : same Wi-Fi, start-weekend.bat, firewall open.",
       "Full notes: STEAMDECK.md",
       "",
       "Linux Node is bundled in runtime/bin/node (no download on the Deck).",

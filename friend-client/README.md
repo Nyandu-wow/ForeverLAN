@@ -12,7 +12,7 @@ Friends should **not** run Node commands, edit JSON, or open hosting docs.
 
 **Steam Deck:** see [`STEAMDECK.md`](STEAMDECK.md) — the host builds `ForeverLAN-SteamDeck.zip` (`scripts\prepare-steamdeck-zip.bat`); on Deck run `install-steamdeck.sh` instead of `INSTALL.bat`.
 
-The installer copies the addon, starts a silent background agent, and adds it to Windows Startup. A tiny watchdog restarts the agent if it crashes (and the agent restarts the collector). Collection starts immediately into a local outbox even if the host's host is offline. Discovery runs in the background; when the host appears, the agent reconnects and flushes the backlog with original event timestamps (Friday → Saturday catch-up).
+The installer copies the addon, starts a silent background agent, and adds it to Windows Startup. A tiny watchdog restarts the agent if it crashes (and the agent restarts the collector). Collection starts immediately into a local outbox even if the Forever LAN host is offline. Discovery runs in the background; when the host appears, the agent reconnects and flushes the backlog with original event timestamps (Friday → Saturday catch-up).
 
 Optional in-game (still no PC setup): `/combatlog` once · **Push LAN** after sessions.
 
@@ -50,11 +50,11 @@ Do not publish the zip (weekend token inside).
 
 Host must be running on the LAN with firewall open (`scripts\open-lan-firewall.bat`) so agents can discover `/discover` and POST `/events`.
 
-**Weekend lock:** once friends have installed, treat the addon + `lanToken` as FINAL. the host can still update the host/dashboard (`CLIENT_CONTRACT.md` / `restart-host.bat`) without redistributing zips.
+**Weekend lock:** once friends have installed, treat the addon + `lanToken` as FINAL. The host can still update the host/dashboard (`CLIENT_CONTRACT.md` / `restart-host.bat`) without redistributing zips.
 
 Host backup anytime: `scripts\backup-weekend-data.bat` → `backups/`.
 
-the host weekend start: `scripts\start-weekend.bat` (host + his collector).
+Host weekend start: `scripts\start-weekend.bat` (host + his collector).
 
 Clean slate (after backup, host stopped): `scripts\reset-weekend-data.bat`.
 

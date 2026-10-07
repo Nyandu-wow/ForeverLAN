@@ -302,7 +302,7 @@ Phase 3 storytelling chapters stay deferred until after the real weekend (board 
 4. Steam Deck pack (Unix ZIP paths, LF shell, bundled Node, Games/Forever detect) — done (`ForeverLAN-SteamDeck.zip`).
 5. Frozen client contract + mid-weekend host updates — done (`CLIENT_CONTRACT.md`, `restart-host.bat`, `smoke-host-compat.mjs`).
 6. Host pipeline stress (6–8 friends) — done (`scripts\stress-host-pipeline.mjs`).
-7. Host firewall once (Admin): `scripts\open-lan-firewall.bat` — the host runs on host-pc.
+7. Host firewall once (Admin): `scripts\open-lan-firewall.bat` — run on the host PC.
 8. Before real LAN: reset practice/loadtest data (`reset-weekend-data.bat`), then freeze addon zips + token.
 9. Friend dry-run — Deck path exercised; Windows INSTALL dry-run still open if a Windows friend joins.
 10. Optional later: CurseForge / LAN DNS if still wanted.

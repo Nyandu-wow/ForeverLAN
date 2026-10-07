@@ -129,7 +129,7 @@ test("board exclude keeps bank alts off; misfiled realm surname repairs Sam Hill
     ts: Math.floor(Date.now() / 1000),
     character: "Sam",
     realm: "This",
-    guid: "Player-KLAYNZ-1",
+    guid: "Player-SAM-1",
     is_self: false,
     level: 7,
     old_level: 6,
@@ -265,7 +265,7 @@ const fixture = [
   ev({ ...self("Alex", B), type: "LOGIN", ts: t0 + 100, level: 5 }),
   ev({ ...self("Alex", B), type: "PLAYER_LEVEL_CHANGED", ts: t0 + 150, old_level: 5, level: 6 }),
   ev({ ...self("Alex Brook", B), type: "PLAYER_DIED", ts: t0 + 2000, level: 6 }),
-  // Bare "Alex" with no GUID while two Nyandus exist: ambiguous, dropped with its death.
+  // Bare "Alex" with no GUID while two Alex alts exist: ambiguous, dropped with its death.
   ev({ v: 1, source: "addon", character: "Alex", type: "PLAYER_DIED", ts: t0 + 2500 }),
   // Sam Hill: first sighting 0→3 is a baseline, then one real ding.
   ev({ ...self("Sam Hill", K), type: "PLAYER_LEVEL_CHANGED", ts: t0 + 50, old_level: 0, level: 3 }),

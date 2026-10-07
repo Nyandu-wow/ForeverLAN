@@ -53,7 +53,7 @@ function test(name, fn) {
 
 console.log("\n[1] Conservative legacy migration (Alex collision)");
 
-const river = {
+const alexRiver = {
   guid: "Player-1-BIGG",
   fullName: "Alex River",
   firstName: "Alex",
@@ -91,7 +91,7 @@ const legacyFlat = [
 
 test("GUID match migrates", () => {
   assert.equal(
-    eventSafelyBelongsToPlayer({ id: "x", guid: "Player-1-BIGG", character: "Alex" }, river),
+    eventSafelyBelongsToPlayer({ id: "x", guid: "Player-1-BIGG", character: "Alex" }, alexRiver),
     true
   );
 });
@@ -100,27 +100,27 @@ test("exact unique full name migrates", () => {
   assert.equal(
     eventSafelyBelongsToPlayer(
       { id: "x", character: "Alex River", realm: "Forever" },
-      river
+      alexRiver
     ),
     true
   );
 });
 
 test("ambiguous short name Alex does NOT migrate to either alt", () => {
-  assert.equal(eventSafelyBelongsToPlayer({ id: "a", character: "Alex" }, river), false);
+  assert.equal(eventSafelyBelongsToPlayer({ id: "a", character: "Alex" }, alexRiver), false);
   assert.equal(eventSafelyBelongsToPlayer({ id: "a", character: "Alex" }, brook), false);
 });
 
 test("missing character does not migrate", () => {
-  assert.equal(eventSafelyBelongsToPlayer({ id: "o", type: "PING" }, river), false);
+  assert.equal(eventSafelyBelongsToPlayer({ id: "o", type: "PING" }, alexRiver), false);
 });
 
 test("schema-2 short bucket Alex is NOT claimed by surnamed alts", () => {
-  assert.equal(bucketSafelyBelongsToPlayer("Alex", river), false);
+  assert.equal(bucketSafelyBelongsToPlayer("Alex", alexRiver), false);
   assert.equal(bucketSafelyBelongsToPlayer("Alex", brook), false);
-  assert.equal(bucketSafelyBelongsToPlayer("__legacy__", river), false);
-  assert.equal(bucketSafelyBelongsToPlayer("Alex River-Forever", river), true);
-  assert.equal(bucketSafelyBelongsToPlayer("Alex River", river), true);
+  assert.equal(bucketSafelyBelongsToPlayer("__legacy__", alexRiver), false);
+  assert.equal(bucketSafelyBelongsToPlayer("Alex River-Forever", alexRiver), true);
+  assert.equal(bucketSafelyBelongsToPlayer("Alex River", alexRiver), true);
 });
 
 test("River login takes only safe events; ambiguous stay on account", () => {
@@ -133,7 +133,7 @@ test("River login takes only safe events; ambiguous stay on account", () => {
       },
     },
   };
-  const { charDb, accountDb: left } = migrateAccountQueue(accountDb, { pending: [] }, river);
+  const { charDb, accountDb: left } = migrateAccountQueue(accountDb, { pending: [] }, alexRiver);
   const ids = charDb.pending.map((e) => e.id).sort();
   assert.deepEqual(ids, ["bigg-1", "bucket-bigg"]);
   assert.ok(left.pending.some((e) => e.id === "ambig-1"));
@@ -171,7 +171,7 @@ test("short bucket orphans reclaim by event identity (even after migrated flag)"
   const { charDb: out, accountDb: left, skipped } = migrateAccountQueue(
     accountDb,
     charDb,
-    river
+    alexRiver
   );
   assert.equal(skipped, true);
   assert.deepEqual(
@@ -201,10 +201,10 @@ test("migration is idempotent — second pass skips and does not duplicate", () 
   const accountDb = {
     pending: legacyFlat.map((e) => ({ ...e })),
   };
-  const first = migrateAccountQueue(accountDb, { pending: [] }, river);
+  const first = migrateAccountQueue(accountDb, { pending: [] }, alexRiver);
   assert.equal(first.charDb.migrated_from_account, true);
   const n = first.charDb.pending.length;
-  const second = migrateAccountQueue(accountDb, first.charDb, river);
+  const second = migrateAccountQueue(accountDb, first.charDb, alexRiver);
   assert.equal(second.skipped, true);
   assert.equal(second.charDb.pending.length, n);
 });
@@ -229,9 +229,9 @@ test("same full name but a different GUID (recreated character) does NOT migrate
     realm: "Forever",
     guid: "Player-1-OLDBIGG",
   };
-  assert.equal(eventSafelyBelongsToPlayer(oldChar, river), false);
+  assert.equal(eventSafelyBelongsToPlayer(oldChar, alexRiver), false);
   const accountDb = { pending: [{ ...oldChar }] };
-  const { charDb } = migrateAccountQueue(accountDb, { pending: [] }, river);
+  const { charDb } = migrateAccountQueue(accountDb, { pending: [] }, alexRiver);
   assert.equal(charDb.pending.length, 0);
   assert.equal(accountDb.pending.length, 1, "stays on the account store for the collector");
 });
