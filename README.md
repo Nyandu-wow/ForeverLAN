@@ -1,87 +1,76 @@
 # Forever LAN
 
-**Offline-first local event log for a one-weekend World of Warcraft: Forever leveling LAN.**
+**Summary:** Saves your character's LAN-party events to local SavedVariables only — the addon never connects to the Internet.
 
-Forever LAN is a local companion stack: a quiet WoW addon, optional friend collectors, and a host dashboard on one PC at the house. Not a SaaS product. Not a cloud analytics service.
+## What this addon does
 
-```
-WoW Forever → Forever LAN addon → SavedVariables
-  → local companion/collector → LAN host → dashboard
-```
+Forever LAN is a small World of Warcraft addon for a house LAN leveling weekend. It watches **your** character (and optionally remembered party friends) and queues gameplay events in WoW **SavedVariables** on disk.
 
-**The WoW addon never connects to the Internet.** Push LAN writes SavedVariables to disk. A separate companion reads those files when the host is up — including Friday→Saturday catch-up with original event timestamps.
+**The addon never connects to the Internet.**
 
-## Products (keep them separate)
+It does **not**:
 
-| Deliverable | What it is | Where |
-|-------------|------------|--------|
-| **CurseForge addon** | Generic local SavedVariables pin — empty roster, no tokens | `dist/curseforge/ForeverLAN-*.zip` |
-| **Friend / Deck pack** | Addon + collector + agent + `party.json` (private) | `prepare-friend-pack` / `prepare-steamdeck-pack` |
-| **Host** | LAN dashboard + ingest on the host PC | `host` |
+- Connect to the Internet or upload data
+- Include LAN host credentials, tokens, or host URLs
+- Include the companion collector or dashboard
 
-Do **not** publish friend/Deck zips publicly — they can contain a `lanToken`.
+A separate local companion (not in this CurseForge / GitHub package) can later read those SavedVariables and feed a private LAN dashboard.
 
-## CurseForge addon (public)
+## Features
 
-Lightweight in-game foundation for the LAN (local SavedVariables only — never connects online):
-
-- Character and level progression
+- Login and level-up events
 - Zone / map changes
-- Approximate travel (sampled)
-- Deaths / resurrections
-- Professions, money, quests, combat time, selected loot
-- Optional party names via `/fl remember First Last`
+- Approximate travel distance and jumps (sampled path length)
+- Deaths and resurrections
+- Profession, craft, money, and quest snapshots
+- Combat time and selected loot
+- Optional friend names via `/fl remember First Last` (opt-in; your character is always tracked)
 
-**Listing copy + moderation checklist:** [`CURSEFORGE_LISTING.md`](CURSEFORGE_LISTING.md)  
-**Policies:** https://support.curseforge.com/support/solutions/articles/9000197279-moderation-policies
+Events keep their original timestamps so a local companion can catch up if the host PC was offline earlier.
 
-Install from CurseForge, or build with:
+## Controls
 
-```bash
-node scripts/prepare-curseforge-addon.mjs
-```
+**FL** pin:
 
-### Upload to CurseForge (API)
+- **Left-click — Push LAN** — flush the queue to disk (UI reload). This is a disk save, not a network send.
+- **Right-click — Combat Log** — send `/combatlog` once when needed.
 
-1. Create a token: https://www.curseforge.com/account/api-tokens  
-2. Copy `.env.example` → `.env` and set `CURSEFORGE_API_TOKEN`  
-3. Copy `curseforge.example.json` → `curseforge.json` and set `projectId`  
-4. List game version IDs: `npm run upload:curseforge:versions`  
-5. Put matching `gameVersionIds` (or names) in `curseforge.json`  
-6. Paste Summary/Description from `CURSEFORGE_LISTING.md`; upload `dist/curseforge/foreverlan-avatar-400.png`
-7. Upload: `npm run upload:curseforge`  
+Slash commands:
 
-Dry run: `npm run upload:curseforge:dry`  
-Never commit `.env` or `curseforge.json`.
+| Command | Action |
+|---------|--------|
+| `/fl` | Help |
+| `/fl status` | Queue, last flush, combat-log state |
+| `/fl roster` | Remembered names + party snapshot |
+| `/fl remember First Last` | Remember a friend (opt-in) |
+| `/fl forget First Last` | Remove a remembered name |
+| `/fl push` | Same as left-click Push LAN |
 
-In game: quiet **FL** pin — left-click Push (disk flush), right-click combat log once. `/fl status` · `/fl roster` · `/fl help`.
+## Install
 
-## Host (house LAN)
+1. Extract so `Interface/AddOns/ForeverLAN/` contains `ForeverLAN.toc` and `ForeverLAN.lua`.
+2. Restart the client (or `/reload`).
+3. Enable **Forever LAN** in the AddOns list.
 
-1. Configure `config.json` (see `config.example.json`). Prefer LAN-only modes for the weekend.
-2. Start the host (`node run.mjs` or your start script).
-3. Open `http://127.0.0.1:8765/`.
+Or install from CurseForge.
 
-Friends install the private friend zip, enable the addon, and Push LAN at breaks. Discovery never gates local collection.
+## Privacy
 
-## Honesty
+- Data stays in local SavedVariables until you Push or log out.
+- No network credentials in this package.
+- No hardcoded weekend party roster in the public CurseForge build.
+- Friend tracking is opt-in (`/fl remember`).
 
-Dashboard metrics use **Logged / Counted / Guessed**. Distance is sampled path length, not a GPS odometer. Never invent unavailable Forever data (e.g. XP/hour).
+## Requirements
 
-## Repo map
-
-| Path | Role |
-|------|------|
-| `addon/ForeverLAN` | Public addon source (CurseForge) |
-| `friend-client` | Friend agent + `ForeverLAN_Party.lua` for INSTALL packs |
-| `collector` | SavedVariables / combat-log collector |
-| `host` | LAN dashboard + ingest |
-| `scripts` | Pack builders and smokes |
-| `docs/` | Operator docs + archived spike notes |
-| `dist/` | Local build output only (gitignored) |
+World of Warcraft (Forever / Camelot game types supported by the TOC).
 
 ## License
 
-Original code: **All Rights Reserved** (`LICENSE`). Free to download and use; no permission to resell or rebrand. Blizzard art and zone stills are separate — see `NOTICE`.
+**All Rights Reserved** — see `LICENSE`.
 
-Addon source (for transparency): https://github.com/Nyandu-wow/ForeverLAN
+Free to download and use via CurseForge. Source is visible for transparency under Blizzard’s Add-On Development Policy; that does not grant reuse, fork, or rebrand rights.
+
+## Links
+
+https://github.com/Nyandu-wow/ForeverLAN

@@ -7,15 +7,8 @@ That does **not** cover Blizzard Entertainment content.
 Blizzard-owned material (not Forever LAN)
 -----------------------------------------
 - World of Warcraft names, UI, and game data
-- Dashboard key art / logos derived from Blizzard press-kit images
-  (`phase1/host/public` forever-lan-bg*, wow-forever-logo*)
-- Zone stills (`assets/zones`) from warcraft.wiki.gg screenshots of the game
-- Map tiles (`assets/maps`) extracted from the Forever beta client / Forever Atlas
+Dashboard key art, zone stills, and map tiles used by the optional local companion
+board are Blizzard-derived and are not part of this public addon package.
 
-Do not treat those files as Forever LAN original work. A public CurseForge
-addon zip contains only the Lua/TOC/README/CHANGELOG/LICENSE (no map art).
-
-Bundled runtimes (friend / Steam Deck packs only)
--------------------------------------------------
-- Node.js (https://nodejs.org) — MIT, copyright Node.js contributors / Joyent
-- Linux packs include Node's LICENSE next to the binary
+A public CurseForge / GitHub addon zip contains only the Lua/TOC/README/CHANGELOG/LICENSE
+(no map art, no companion host).
