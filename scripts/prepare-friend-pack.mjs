@@ -184,7 +184,7 @@ async function main() {
   copyDir(path.join(root, "collector"), path.join(out, "collector"));
   copyDir(path.join(root, "addon", "ForeverLAN"), path.join(out, "addon", "ForeverLAN"));
   injectFriendPartyDefaults(path.join(out, "addon", "ForeverLAN"));
-  // Keep friend-pack/ addon mirror in sync for beta rebuilds (not a freeze artifact).
+  // Optional local mirror under friend-pack/ (gitignored) for quick inspection.
   const mirror = path.join(root, "friend-pack", "ForeverLAN");
   fs.rmSync(mirror, { recursive: true, force: true });
   copyDir(path.join(root, "addon", "ForeverLAN"), mirror);

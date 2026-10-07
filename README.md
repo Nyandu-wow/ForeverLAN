@@ -1,6 +1,6 @@
 # Forever LAN
 
-**Offline-first telemetry for a one-weekend World of Warcraft: Forever leveling LAN.**
+**Offline-first local event log for a one-weekend World of Warcraft: Forever leveling LAN.**
 
 Forever LAN is a local companion stack: a quiet WoW addon, optional friend collectors, and a host dashboard on one PC at the house. Not a SaaS product. Not a cloud analytics service.
 
@@ -15,7 +15,7 @@ WoW Forever → Forever LAN addon → SavedVariables
 
 | Deliverable | What it is | Where |
 |-------------|------------|--------|
-| **CurseForge addon** | Generic offline telemetry pin — empty roster, no tokens | `dist/curseforge/ForeverLAN-*.zip` |
+| **CurseForge addon** | Generic local SavedVariables pin — empty roster, no tokens | `dist/curseforge/ForeverLAN-*.zip` |
 | **Friend / Deck pack** | Addon + collector + agent + `party.json` (private) | `prepare-friend-pack` / `prepare-steamdeck-pack` |
 | **Host** | LAN dashboard + ingest on the host PC | `host` |
 
@@ -23,7 +23,7 @@ Do **not** publish friend/Deck zips publicly — they can contain a `lanToken`.
 
 ## CurseForge addon (public)
 
-Lightweight in-game foundation for the LAN:
+Lightweight in-game foundation for the LAN (local SavedVariables only — never connects online):
 
 - Character and level progression
 - Zone / map changes
@@ -31,6 +31,9 @@ Lightweight in-game foundation for the LAN:
 - Deaths / resurrections
 - Professions, money, quests, combat time, selected loot
 - Optional party names via `/fl remember First Last`
+
+**Listing copy + moderation checklist:** [`CURSEFORGE_LISTING.md`](CURSEFORGE_LISTING.md)  
+**Policies:** https://support.curseforge.com/support/solutions/articles/9000197279-moderation-policies
 
 Install from CurseForge, or build with:
 
@@ -45,7 +48,8 @@ node scripts/prepare-curseforge-addon.mjs
 3. Copy `curseforge.example.json` → `curseforge.json` and set `projectId`  
 4. List game version IDs: `npm run upload:curseforge:versions`  
 5. Put matching `gameVersionIds` (or names) in `curseforge.json`  
-6. Upload: `npm run upload:curseforge`  
+6. Paste Summary/Description from `CURSEFORGE_LISTING.md`; upload `dist/curseforge/foreverlan-avatar-400.png`
+7. Upload: `npm run upload:curseforge`  
 
 Dry run: `npm run upload:curseforge:dry`  
 Never commit `.env` or `curseforge.json`.
@@ -69,10 +73,12 @@ Dashboard metrics use **Logged / Counted / Guessed**. Distance is sampled path l
 | Path | Role |
 |------|------|
 | `addon/ForeverLAN` | Public addon source (CurseForge) |
-| `friend-client` | Friend agent + optional `ForeverLAN_Party.lua` for INSTALL packs |
+| `friend-client` | Friend agent + `ForeverLAN_Party.lua` for INSTALL packs |
 | `collector` | SavedVariables / combat-log collector |
 | `host` | LAN dashboard + ingest |
 | `scripts` | Pack builders and smokes |
+| `docs/` | Operator docs + archived spike notes |
+| `dist/` | Local build output only (gitignored) |
 
 ## License
 

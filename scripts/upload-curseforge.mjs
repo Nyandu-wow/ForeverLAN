@@ -213,7 +213,7 @@ async function main() {
   const changelog = extractLatestChangelog(changelogPath);
 
   const releaseType =
-    argValue("--release-type") || cfg.releaseType || "release";
+    argValue("--release-type") || cfg.releaseType || "beta";
   if (!["alpha", "beta", "release"].includes(releaseType)) {
     throw new Error(`Invalid releaseType: ${releaseType}`);
   }

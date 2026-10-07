@@ -8,7 +8,7 @@
 | **Alliance** | `WoW_Forever_Announce_Key_Art_-_Alliance.jpg` (Horley) | `forever-lan-bg.jpg` |
 | **Horde** | `WoW_Forever_Announce_Key_Art_-_Horde.jpg` | `forever-lan-bg-horde.jpg` |
 
-**Logo:** Official `WoW_Forever_Logo` from the same kit → `wow-forever-logo-web.png` (chrome brand lockup + LAN wordmark). White vector: `wow-forever-logo-white.png`.
+**Logo:** Official `WoW_Forever_Logo` from the same kit → `wow-forever-logo-web.png` (and `wow-forever-logo-white-web.png` where needed). Full-res masters are not kept in git.
 
 ## Style notes
 

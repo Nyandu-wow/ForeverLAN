@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.69
+
+- CurseForge storefront copy aligned with moderation policies (local SavedVariables wording; no “cloud telemetry” framing)
+- TOC Notes clarify: disk-only, never connects online
+- Paste-ready project listing documented in repo `CURSEFORGE_LISTING.md`
+- 400×400 project avatar generated for upload (`dist/curseforge/foreverlan-avatar-400.png`)
+
 ## 0.1.68
 
 - License set to **All Rights Reserved** (matches common CurseForge WoW addon practice; still free to download and use).
@@ -31,7 +38,7 @@
 
 ### 0.1.64–0.1.60
 
-- Telemetry hardening, Push honesty, combat-log handling, queue coalescing
+- Event-queue hardening, Push honesty, combat-log handling, queue coalescing
 
 ### 0.1.59–0.1.48
 
@@ -43,5 +50,5 @@
 
 ### 0.1.37
 
-- Per-character SavedVariables telemetry queues
+- Per-character SavedVariables event queues
 - Migration from older account-wide storage

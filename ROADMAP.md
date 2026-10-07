@@ -15,8 +15,8 @@ SaaS-style UI patterns are fine when they help. Architecture stays on the LAN ho
 | [`DATA_COLLECTION.md`](DATA_COLLECTION.md) | Offline-first pipeline, timestamps, catch-up |
 | [`HOSTING.md`](HOSTING.md) | LAN host notes (parked packaging) |
 | [`CAPABILITY_MATRIX.md`](CAPABILITY_MATRIX.md) | What the Forever client actually exposes |
-| [`PHASE0_TELEMETRY_REPORT.md`](PHASE0_TELEMETRY_REPORT.md) | Phase 0 probe report |
-| [`PHASE1.md`](PHASE1.md) | Historical spike notes (stale — prefer this roadmap) |
+| [`docs/archive/PHASE0_TELEMETRY_REPORT.md`](docs/archive/PHASE0_TELEMETRY_REPORT.md) | Phase 0 probe report (archive) |
+| [`docs/archive/PHASE1.md`](docs/archive/PHASE1.md) | Historical spike notes (archive) |
 
 Working tree: `addon`, `collector`, `host` (active). `friend-client` parked.
 
@@ -145,7 +145,7 @@ Success means all of the following that the repo already supports:
 
 **Definition of Done:** Install paths, combat-log / WTF layout, and “what we can prove” are documented; product work does not invent unavailable APIs.
 
-**Out of scope:** Full capability matrix copy-paste here — use [`CAPABILITY_MATRIX.md`](CAPABILITY_MATRIX.md) and [`PHASE0_TELEMETRY_REPORT.md`](PHASE0_TELEMETRY_REPORT.md).
+**Out of scope:** Full capability matrix copy-paste here — use [`CAPABILITY_MATRIX.md`](CAPABILITY_MATRIX.md) and [`docs/archive/PHASE0_TELEMETRY_REPORT.md`](docs/archive/PHASE0_TELEMETRY_REPORT.md).
 
 ---
 

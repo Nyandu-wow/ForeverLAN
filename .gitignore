@@ -1,4 +1,4 @@
-# Secrets / local host config (keep config.example.json)
+# Secrets / local host config (keep *.example.json)
 config.json
 **/config.local.json
 .env
@@ -12,10 +12,18 @@ cloudflare/bin/
 cloudflare/*.json
 **/.cloudflared/
 
-# Large local archives
-*.zip
-phase1 (2).zip
+# Build / pack output (rebuild with prepare-* scripts)
+dist/
+!dist/.gitignore
+
+# Legacy flatten leftover (never re-commit)
+phase1/
 phase1.zip
+phase1 (2).zip
+*.zip
+
+# Generated friend-pack addon mirror (prepare-friend-pack writes this)
+friend-pack/ForeverLAN/
 
 # Runtime / local data
 data/
@@ -33,6 +41,7 @@ backups/
 
 **/party.json
 !party.example.json
+!**/party.example.json
 
 # OS / editor
 .DS_Store

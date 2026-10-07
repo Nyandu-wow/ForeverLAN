@@ -1,7 +1,11 @@
-# Forever LAN friend pack (legacy notes)
+# Forever LAN friend pack (legacy helper)
 
-**Use the plug-and-play client instead:** [`../friend-client/README.md`](../friend-client/README.md)
+**Use the plug-and-play client:** [`../friend-client/README.md`](../friend-client/README.md)
 
-the host builds a zip with `node scripts/prepare-friend-pack.mjs`. Friends only double-click `INSTALL.bat` and enable the addon in WoW.
+Build the weekend zip with:
 
-The addon copy under `friend-pack/ForeverLAN/` is kept in sync for reference; the prepare script copies from `addon`.
+```bash
+node scripts/prepare-friend-pack.mjs
+```
+
+Output: `dist/ForeverLAN-Friends/` (gitignored). The prepare script copies the addon from `addon/ForeverLAN` and injects `ForeverLAN_Party.lua` — do not commit a second addon tree here.

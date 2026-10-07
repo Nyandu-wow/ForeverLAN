@@ -1,9 +1,9 @@
 ## Interface: 16001, 120100
 ## AllowLoadGameType: camelot, mainline
 ## Title: Forever LAN
-## Notes: Offline-first LAN telemetry. Left-click FL = save to disk. Right-click = combat log once. /fl
+## Notes: Local SavedVariables event log for a house LAN. FL = save to disk. Never connects online. /fl
 ## Author: Forever LAN
-## Version: 0.1.68
+## Version: 0.1.69
 ## X-Category: Miscellaneous
 ## X-License: All Rights Reserved
 ## X-Website: https://github.com/Nyandu-wow/ForeverLAN

@@ -1,8 +1,8 @@
 --[[
   Forever LAN
 
-  Offline-first character telemetry for a local Forever leveling LAN.
-  Queues events in SavedVariables. Does not use the network.
+  Local SavedVariables event log for a house LAN leveling weekend.
+  Queues events on disk. Does not use the network.
 
   ForeverLANDB     - account settings
   ForeverLANCharDB - per-character pending queue (schema 3)
@@ -13,7 +13,7 @@
 ]]
 
 local ADDON_NAME = ...
-local ADDON_VERSION = "0.1.68"
+local ADDON_VERSION = "0.1.69"
 local SV_SCHEMA = 3
 -- Optional friend-pack inject (ForeverLAN_Party.lua). CurseForge ships empty.
 local BUILTIN_ROSTER = (ForeverLAN_Party and ForeverLAN_Party.roster) or {}
