@@ -1,5 +1,5 @@
 # Start Cloudflare Tunnel — push-only ingest → local Forever LAN host :8765
-# Publishes foreverlan-ingest.example.com only. Board: http://127.0.0.1:8765/
+# Publishes the ingest hostname from config.yml only. Board: http://127.0.0.1:8765/
 # Prerequisites: config.yml filled; cloudflared in .\bin\ or on PATH
 $ErrorActionPreference = "Stop"
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -29,7 +29,7 @@ if (-not $cloudflared) {
 }
 
 Write-Host "Using: $cloudflared"
-Write-Host "Tunneling https://foreverlan-ingest.example.com -> http://127.0.0.1:8765 (POST /events only)"
+Write-Host "Tunneling ingest hostname from config.yml -> http://127.0.0.1:8765 (POST /events only)"
 Write-Host "Board stays local: http://127.0.0.1:8765/"
 & $cloudflared tunnel --config $config run
 exit $LASTEXITCODE

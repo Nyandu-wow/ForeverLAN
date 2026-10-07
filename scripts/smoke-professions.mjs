@@ -11,7 +11,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { LanSession } from "../host/lan-session.js";
-import { DEFAULT_LAN_ROSTER } from "../collector/lan-roster.js";
+import { FIXTURE_LAN_ROSTER } from "./fixtures/weekend-roster.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
@@ -66,7 +66,7 @@ const partyEvents = [
 ];
 
 const session = new LanSession({
-  roster: DEFAULT_LAN_ROSTER,
+  roster: FIXTURE_LAN_ROSTER,
   weekendStart: "2026-09-26",
 });
 const state = session.rebuildFromEvents(partyEvents);
@@ -161,7 +161,7 @@ if (fs.existsSync(jsonl)) {
     .filter(Boolean)
     .map((l) => JSON.parse(l));
   const real = new LanSession({
-    roster: DEFAULT_LAN_ROSTER,
+    roster: FIXTURE_LAN_ROSTER,
     weekendStart: "2026-09-23",
   });
   const st = real.rebuildFromEvents(events);

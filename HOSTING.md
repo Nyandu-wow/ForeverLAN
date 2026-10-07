@@ -45,9 +45,9 @@ On the house LAN, agents find the host via beacon + `/discover` — no hostname 
 
 **Remote friend beta** (same stack, WAN via Cloudflare Tunnel — **ingest only**): see [`cloudflare/README.md`](cloudflare/README.md).
 
-1. One-time: tunnel `foreverlan` + DNS for `foreverlan-ingest.example.com` (run `cloudflare/setup-tunnel.ps1`)
-2. `config.yml` ingress = ingest hostname only — **do not** publish `foreverlan.example.com` for push tests
-3. `config.json`: `"remoteSecurityMode": "wan"`, `"ingestPublicHostname": "foreverlan-ingest.example.com"`, `"friendHostUrl": "https://foreverlan-ingest.example.com"`
+1. One-time: tunnel `foreverlan` + DNS for your ingest hostname (set `FOREVERLAN_INGEST_HOSTNAME` or `config.json` → `ingestPublicHostname`, then run `cloudflare/setup-tunnel.ps1`)
+2. `config.yml` ingress = ingest hostname only — **do not** publish a remote dashboard hostname for push tests
+3. `config.json`: `"remoteSecurityMode": "wan"`, `"ingestPublicHostname": "foreverlan-ingest.example.com"`, `"friendHostUrl": "https://foreverlan-ingest.example.com"` (use your real DNS names)
 4. Rebuild Friends zip; session: `scripts\start-remote-beta.bat`
 5. Verify: `node scripts/test-remote-security.mjs` and `--live-wan` when the tunnel is up
 6. Watch the board at `http://127.0.0.1:8765/` — stop the tunnel when not testing

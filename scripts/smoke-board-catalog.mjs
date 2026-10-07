@@ -16,13 +16,17 @@ import { fileURLToPath } from "node:url";
 import { LanSession } from "../host/lan-session.js";
 import { catalogFromLanState } from "../host/board-catalog.js";
 import { characterSessions, sessionFactsFromBoard } from "../host/analytics.js";
-import { DEFAULT_LAN_ROSTER, DEFAULT_LAN_ROSTER_ALIASES, DEFAULT_BOARD_EXCLUDE } from "../collector/lan-roster.js";
+import {
+  FIXTURE_LAN_ROSTER,
+  FIXTURE_LAN_ROSTER_ALIASES,
+  FIXTURE_BOARD_EXCLUDE,
+} from "./fixtures/weekend-roster.mjs";
 import { createSyncWho } from "../collector/sync-who.js";
 import { characterFromCombatName } from "../collector/combatlog.js";
 import { fullNameKey, isFullName, resolveRosterKey, aliasMapFrom } from "../host/character-id.js";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-const ROSTER = DEFAULT_LAN_ROSTER;
+const ROSTER = FIXTURE_LAN_ROSTER;
 let passed = 0;
 
 function test(name, fn) {
@@ -45,7 +49,7 @@ test("combat-log realm strip keeps Forever First Last (hyphenated realms)", () =
   assert.equal(characterFromCombatName("Sam"), "Sam");
 });
 test("remembered roster: exact + explicit aliases (never bare Alex)", () => {
-  const who = createSyncWho(DEFAULT_LAN_ROSTER, DEFAULT_LAN_ROSTER_ALIASES);
+  const who = createSyncWho(FIXTURE_LAN_ROSTER, FIXTURE_LAN_ROSTER_ALIASES);
   assert.equal(who.filterEvent({ type: "LOGIN", character: "Alex Brook", is_self: false }), null);
   assert.ok(who.filterEvent({ type: "LOGIN", character: "Alex Brook", is_self: true }));
   assert.ok(who.filterEvent({ type: "LOGIN", character: "Jordan Vale", is_self: false }));
@@ -54,15 +58,17 @@ test("remembered roster: exact + explicit aliases (never bare Alex)", () => {
   assert.ok(who.filterEvent({ type: "LOGIN", character: "Sam", is_self: false }));
   assert.equal(who.filterEvent({ type: "LOGIN", character: "Alex", is_self: false }), null);
   assert.ok(who.filterEvent({ type: "LOGIN", character: "Alex River", is_self: false }));
-  const aliases = aliasMapFrom(DEFAULT_LAN_ROSTER_ALIASES);
-  const roster = new Set(DEFAULT_LAN_ROSTER.map(fullNameKey));
+  const aliases = aliasMapFrom(FIXTURE_LAN_ROSTER_ALIASES);
+  const roster = new Set(FIXTURE_LAN_ROSTER.map(fullNameKey));
   assert.equal(resolveRosterKey("Casey", roster, aliases), "casey brook");
   assert.equal(resolveRosterKey("Sam", roster, aliases), "sam hill");
   assert.equal(resolveRosterKey("Alex", roster, aliases), null);
 });
 test("board-exclude drops bank is_self; PARTY_KILL gets Forever full name from GUID", () => {
-  const who = createSyncWho(DEFAULT_LAN_ROSTER, DEFAULT_LAN_ROSTER_ALIASES, {
-    boardExclude: DEFAULT_BOARD_EXCLUDE,
+  // Explicit exclude list — product DEFAULT_BOARD_EXCLUDE is empty.
+  const bankExclude = ["Bank Alt"];
+  const who = createSyncWho(FIXTURE_LAN_ROSTER, FIXTURE_LAN_ROSTER_ALIASES, {
+    boardExclude: bankExclude,
   });
   assert.equal(
     who.filterEvent({
@@ -99,8 +105,8 @@ test("board-exclude drops bank is_self; PARTY_KILL gets Forever full name from G
 test("board exclude keeps bank alts off; misfiled realm surname repairs Sam Hill", () => {
   const session = new LanSession({
     roster: ROSTER,
-    rosterAliases: DEFAULT_LAN_ROSTER_ALIASES,
-    boardExclude: DEFAULT_BOARD_EXCLUDE,
+    rosterAliases: FIXTURE_LAN_ROSTER_ALIASES,
+    boardExclude: ["Bank Alt"],
     rosterAuto: true,
     levelCap: 60,
   });
@@ -141,8 +147,8 @@ test("board exclude keeps bank alts off; misfiled realm surname repairs Sam Hill
 function rebuild(events) {
   const session = new LanSession({
     roster: ROSTER,
-    rosterAliases: DEFAULT_LAN_ROSTER_ALIASES,
-    boardExclude: DEFAULT_BOARD_EXCLUDE,
+    rosterAliases: FIXTURE_LAN_ROSTER_ALIASES,
+    boardExclude: FIXTURE_BOARD_EXCLUDE,
     rosterAuto: true,
     levelCap: 60,
   });

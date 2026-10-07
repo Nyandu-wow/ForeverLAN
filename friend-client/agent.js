@@ -137,7 +137,8 @@ function writeCollectorConfig(hostUrl, party, token) {
     pollProcessMs: 2000,
     outboxPath: path.join(dataDir, "outbox.jsonl"),
     statePath: path.join(dataDir, "collector-state.json"),
-    lanRoster: party.lanRoster || ["Alex River", "Sam Hill", "Jordan Vale", "Casey Brook"],
+    // Weekend names come from ForeverLAN_Party.lua / pack party.json — never hardcode here.
+    lanRoster: Array.isArray(party.lanRoster) ? party.lanRoster : [],
   };
   const body = JSON.stringify(config, null, 2);
   const tmp = `${configPath}.${process.pid}.tmp`;

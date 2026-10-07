@@ -7,7 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { LanSession } from "../host/lan-session.js";
-import { DEFAULT_LAN_ROSTER } from "../collector/lan-roster.js";
+import { FIXTURE_LAN_ROSTER } from "./fixtures/weekend-roster.mjs";
 import { zonesFromBoard } from "../host/board-catalog.js";
 import "../host/public/zone-map.js";
 
@@ -179,7 +179,7 @@ const fillOf = (svg, zone) => {
 
 // --- LanSession zone_visits → catalog visits ---
 {
-  const session = new LanSession({ roster: DEFAULT_LAN_ROSTER });
+  const session = new LanSession({ roster: FIXTURE_LAN_ROSTER });
   const zoneEv = (id, ts, zone) => ({
     id,
     ts,

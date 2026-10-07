@@ -13,6 +13,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { FIXTURE_LAN_ROSTER } from "./fixtures/weekend-roster.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "foreverlan-e2e-"));
@@ -29,7 +30,7 @@ fs.writeFileSync(
     lanToken: token,
     lanBeacon: false,
     lanName: "E2E",
-    lanRoster: ["Alex River", "Sam Hill", "Jordan Vale", "Casey Brook"],
+    lanRoster: FIXTURE_LAN_ROSTER,
     lanLevelCap: 60,
   })
 );

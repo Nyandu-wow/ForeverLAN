@@ -16,7 +16,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { performance } from "node:perf_hooks";
-import { DEFAULT_LAN_ROSTER } from "../collector/lan-roster.js";
+import { FIXTURE_LAN_ROSTER } from "./fixtures/weekend-roster.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
@@ -55,7 +55,7 @@ if (!token) {
   process.exit(1);
 }
 
-const ROSTER = DEFAULT_LAN_ROSTER;
+const ROSTER = FIXTURE_LAN_ROSTER;
 const ZONES = ["Elwynn Forest", "Westfall", "Loch Modan", "Teldrassil", "Dun Morogh", "Darkshore"];
 
 const stats = {

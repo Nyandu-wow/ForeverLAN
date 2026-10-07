@@ -1,5 +1,6 @@
 {
   "lanToken": "PASTE_TOKEN_FROM_HOST",
   "httpPort": 8765,
-  "lanRoster": ["Alex River", "Sam Hill", "Jordan Vale", "Casey Brook"]
+  "hostUrl": "",
+  "lanRoster": []
 }

@@ -1,11 +1,34 @@
 # One-time: create foreverlan tunnel + ingest DNS + push-only config.yml (after tunnel login).
-# Publishes foreverlan-ingest.example.com only. Board stays on http://127.0.0.1:8765/
+# Publishes your ingest hostname only. Board stays on http://127.0.0.1:8765/
+#
+# Set your real DNS name first, e.g.:
+#   $env:FOREVERLAN_INGEST_HOSTNAME = "foreverlan-ingest.yourdomain.com"
+# Or put ingestPublicHostname in repo-root config.json (gitignored).
 $ErrorActionPreference = "Stop"
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = Split-Path -Parent $here
 $exe = Join-Path $here "bin\cloudflared.exe"
 if (-not (Test-Path $exe)) {
   Write-Host "Missing $exe"
   exit 1
+}
+
+function Resolve-IngestHostname {
+  if ($env:FOREVERLAN_INGEST_HOSTNAME) { return $env:FOREVERLAN_INGEST_HOSTNAME.Trim() }
+  $cfg = Join-Path $repoRoot "config.json"
+  if (Test-Path $cfg) {
+    try {
+      $json = Get-Content $cfg -Raw | ConvertFrom-Json
+      if ($json.ingestPublicHostname) { return [string]$json.ingestPublicHostname.Trim() }
+    } catch {}
+  }
+  return "foreverlan-ingest.example.com"
+}
+
+$ingestHost = Resolve-IngestHostname
+if ($ingestHost -like "*.example.com") {
+  Write-Host "WARNING: using placeholder ingest host '$ingestHost'."
+  Write-Host "Set FOREVERLAN_INGEST_HOSTNAME or config.json ingestPublicHostname before DNS/tunnel for a real domain."
 }
 
 $cert = Join-Path $env:USERPROFILE ".cloudflared\cert.pem"
@@ -44,8 +67,8 @@ if (-not (Test-Path $cred)) {
   exit 1
 }
 
-Write-Host "Routing DNS foreverlan-ingest.example.com..."
-& $exe tunnel route dns foreverlan foreverlan-ingest.example.com 2>&1 | ForEach-Object { Write-Host $_ }
+Write-Host "Routing DNS $ingestHost..."
+& $exe tunnel route dns foreverlan $ingestHost 2>&1 | ForEach-Object { Write-Host $_ }
 
 $configPath = Join-Path $here "config.yml"
 $lines = @(
@@ -56,13 +79,13 @@ $lines = @(
   "credentials-file: $cred",
   "",
   "ingress:",
-  "  - hostname: foreverlan-ingest.example.com",
+  "  - hostname: $ingestHost",
   "    service: http://127.0.0.1:8765",
   "  - service: http_status:404"
 )
 [System.IO.File]::WriteAllText($configPath, ($lines -join "`n") + "`n")
 
 Write-Host ""
-Write-Host "Wrote $configPath (ingest only)"
+Write-Host "Wrote $configPath (ingest only → $ingestHost)"
 Write-Host "Next: scripts\start-remote-beta.bat"
 Write-Host "Optional remote board later: see access-policy.md (do not re-run this script for that)."

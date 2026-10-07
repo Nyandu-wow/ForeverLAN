@@ -3,7 +3,7 @@
  * Run: node scripts/smoke-presence.mjs
  */
 import { LanSession } from "../host/lan-session.js";
-import { DEFAULT_LAN_ROSTER } from "../collector/lan-roster.js";
+import { FIXTURE_LAN_ROSTER } from "./fixtures/weekend-roster.mjs";
 
 function assert(cond, msg) {
   if (!cond) throw new Error(msg);
@@ -69,7 +69,7 @@ const events = [
   },
 ];
 
-const session = new LanSession({ roster: DEFAULT_LAN_ROSTER });
+const session = new LanSession({ roster: FIXTURE_LAN_ROSTER });
 session.rebuildFromEvents(events);
 const board = session.getPublicState();
 const byName = Object.fromEntries((board.players || []).map((p) => [p.character, p]));
@@ -88,7 +88,7 @@ assert(
 );
 
 // Push LAN reload LOGOUT must not force Offline when tagged.
-const pushReload = new LanSession({ roster: DEFAULT_LAN_ROSTER });
+const pushReload = new LanSession({ roster: FIXTURE_LAN_ROSTER });
 pushReload.rebuildFromEvents([
   {
     v: 1,
@@ -123,7 +123,7 @@ assert(dosto?.online === true, `Push-reload LOGOUT must leave Brook online, got 
 
 // Self with recent host ingest stays online even if last typed event was LOGOUT
 // (Push stranded Offline before LOGIN flush).
-const stranded = new LanSession({ roster: DEFAULT_LAN_ROSTER });
+const stranded = new LanSession({ roster: FIXTURE_LAN_ROSTER });
 stranded.rebuildFromEvents([
   {
     v: 1,
@@ -170,7 +170,7 @@ assert(
 );
 
 // Push LAN pattern: LOGOUT then LOGIN ⇒ online
-const push = new LanSession({ roster: DEFAULT_LAN_ROSTER });
+const push = new LanSession({ roster: FIXTURE_LAN_ROSTER });
 push.rebuildFromEvents([
   {
     v: 1,

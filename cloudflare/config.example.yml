@@ -1,10 +1,9 @@
 # Cloudflare Tunnel — Forever LAN remote beta (push-only)
 #
 # WAN exposes friend ingest only. Watch the board on the host PC locally.
-# foreverlan.example.com + Cloudflare Access are optional (not required for push tests).
+# Replace *.example.com with your own DNS names before generating config.yml.
 #
-# Free Universal SSL covers first-level *.example.com names (e.g. foreverlan-ingest),
-# not nested names like ingest.foreverlan.example.com.
+# Optional remote board hostname + Cloudflare Access are separate (see access-policy.md).
 
 tunnel: REPLACE_WITH_TUNNEL_UUID
 credentials-file: C:\Users\REPLACE\.cloudflared\REPLACE_WITH_TUNNEL_UUID.json

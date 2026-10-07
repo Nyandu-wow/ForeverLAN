@@ -4,15 +4,17 @@ For remote testing, friends only need to **push events**. The board stays on the
 
 | Hostname | Role |
 |----------|------|
-| `https://foreverlan-ingest.example.com` | Friend `POST /events` — **`lanToken`**, host allows this path only |
+| `https://foreverlan-ingest.example.com` (your DNS) | Friend `POST /events` — **`lanToken`**, host allows this path only |
 | `http://127.0.0.1:8765/` | Dashboard / SSE / APIs — **local**, not published on the tunnel |
 
 ```text
 Agent    ──lanToken─►  foreverlan-ingest.example.com ──tunnel──►  :8765  (POST /events)
-You      ──browser──►  http://127.0.0.1:8765/                 (board on host PC)
+You      ──browser──►  http://127.0.0.1:8765/                       (board on host PC)
 ```
 
-Optional: Cloudflare Access on `foreverlan.example.com` if you later want a remote board. Not required for push tests — leave that hostname **off** the tunnel ingress (see `config.yml`).
+Replace `*.example.com` with your own domain. Set `FOREVERLAN_INGEST_HOSTNAME` or `config.json` → `ingestPublicHostname` before running `setup-tunnel.ps1`.
+
+Optional: Cloudflare Access on a separate dashboard hostname if you later want a remote board. Not required for push tests — leave that hostname **off** the tunnel ingress (see `config.yml`).
 
 **House LAN weekend:** tunnel **off**, clear `friendHostUrl`, LAN discovery as usual.
 
@@ -30,9 +32,10 @@ Optional: Cloudflare Access on `foreverlan.example.com` if you later want a remo
 ## One-time setup
 
 1. `bin\cloudflared.exe` + `tunnel login` + tunnel `foreverlan`
-2. DNS: `cloudflared tunnel route dns foreverlan foreverlan-ingest.example.com`
-3. `config.yml` ingress = ingest hostname only
-4. Rebuild Friends zip
+2. Set your ingest hostname (`FOREVERLAN_INGEST_HOSTNAME` or `config.json`)
+3. DNS: `cloudflared tunnel route dns foreverlan <your-ingest-host>`
+4. `config.yml` ingress = ingest hostname only
+5. Rebuild Friends zip
 
 ## Every remote-beta session
 
@@ -49,9 +52,9 @@ node scripts\test-remote-security.mjs --live-wan
 
 | Surface | Where | Auth |
 |---------|--------|------|
-| `POST /events` | `foreverlan-ingest.example.com` | `lanToken` |
+| `POST /events` | your ingest hostname | `lanToken` |
 | Board /stream /api /health /discover | host PC `127.0.0.1:8765` | none (LAN/local) |
 
-**Do not re-run an old setup that adds `foreverlan.example.com` to ingress** — current `setup-tunnel.ps1` is ingest-only.
+**Do not** publish a remote dashboard hostname on tunnel ingress for push-only tests — current `setup-tunnel.ps1` is ingest-only.
 
 See also [`access-policy.md`](access-policy.md) if you re-enable a remote dashboard later.

@@ -16,7 +16,7 @@ import {
 } from "../host/control-room.js";
 import { findTooSoon } from "../host/prize-pool.js";
 import { LanSession } from "../host/lan-session.js";
-import { DEFAULT_LAN_ROSTER } from "../collector/lan-roster.js";
+import { FIXTURE_LAN_ROSTER } from "./fixtures/weekend-roster.mjs";
 
 const now = Math.floor(Date.now() / 1000);
 const iso = (sec) => new Date(sec * 1000).toISOString();
@@ -227,7 +227,7 @@ console.log("thresholds", CLIENT_STATUS_THRESHOLDS);
 
 // --- LanSession integration: client_status + race_pulse on board ---
 {
-  const session = new LanSession({ roster: DEFAULT_LAN_ROSTER });
+  const session = new LanSession({ roster: FIXTURE_LAN_ROSTER });
   session.rebuildFromEvents([
     {
       id: "n1",
@@ -278,7 +278,7 @@ console.log("thresholds", CLIENT_STATUS_THRESHOLDS);
 
 // --- Shared-zone moment names each character once (same name under two GUIDs) ---
 {
-  const session = new LanSession({ roster: DEFAULT_LAN_ROSTER });
+  const session = new LanSession({ roster: FIXTURE_LAN_ROSTER });
   const zoneEv = (id, ts, character, guid, extra = {}) => ({
     id,
     ts,
@@ -311,7 +311,7 @@ console.log("thresholds", CLIENT_STATUS_THRESHOLDS);
 
 // A death in the same hour beats a zone pile-up for the Live headline.
 {
-  const session = new LanSession({ roster: DEFAULT_LAN_ROSTER });
+  const session = new LanSession({ roster: FIXTURE_LAN_ROSTER });
   session.rebuildFromEvents([
     {
       id: "d1",

@@ -1,6 +1,6 @@
 @echo off
 REM Remote friend beta — push-only over Cloudflare Tunnel.
-REM Friends POST events to https://foreverlan-ingest.example.com (lanToken).
+REM Friends POST events to your ingest hostname (config.json friendHostUrl) (lanToken).
 REM Watch the board on this PC: http://127.0.0.1:8765/
 REM Tear down: close the tunnel window when done.
 setlocal
@@ -8,7 +8,7 @@ cd /d "%~dp0.."
 
 echo.
 echo  FOREVER LAN — REMOTE BETA (push-only)
-echo  Ingest WAN:  https://foreverlan-ingest.example.com
+echo  Ingest WAN:  your ingest hostname (config.json friendHostUrl)
 echo  Dashboard:   http://127.0.0.1:8765/   (local only — not on the tunnel)
 echo.
 

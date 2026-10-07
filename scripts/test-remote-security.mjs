@@ -144,7 +144,7 @@ fs.writeFileSync(
     ingestPublicHostname: ingestHost,
     publicBaseUrl: "https://foreverlan.example.com",
     publicHostname: "foreverlan.example.com",
-    lanRoster: ["Alex River"],
+    lanRoster: ["First Last"],
     lanLevelCap: 60,
   })
 );
@@ -376,15 +376,29 @@ try {
 // --- optional live WAN (push-only by default) ---
 if (liveWan) {
   const testDash = process.env.FOREVERLAN_TEST_DASHBOARD === "1";
-  const dash = (process.env.FOREVERLAN_WAN_DASHBOARD || "https://foreverlan.example.com").replace(/\/$/, "");
-  const ingest = (process.env.FOREVERLAN_WAN_INGEST || "https://foreverlan-ingest.example.com").replace(/\/$/, "");
-  let cfgToken = "";
+  let cfgJson = {};
   try {
-    cfgToken = JSON.parse(fs.readFileSync(path.join(root, "config.json"), "utf8")).lanToken || "";
+    cfgJson = JSON.parse(fs.readFileSync(path.join(root, "config.json"), "utf8"));
   } catch {
     /* ignore */
   }
-  const wanToken = process.env.FOREVERLAN_TOKEN || cfgToken;
+  const dash = (
+    process.env.FOREVERLAN_WAN_DASHBOARD ||
+    cfgJson.publicBaseUrl ||
+    (cfgJson.publicHostname ? `https://${cfgJson.publicHostname}` : "") ||
+    ""
+  ).replace(/\/$/, "");
+  const ingest = (
+    process.env.FOREVERLAN_WAN_INGEST ||
+    cfgJson.friendHostUrl ||
+    (cfgJson.ingestPublicHostname ? `https://${cfgJson.ingestPublicHostname}` : "") ||
+    ""
+  ).replace(/\/$/, "");
+  if (!ingest) {
+    console.error("live-wan needs FOREVERLAN_WAN_INGEST or config.json friendHostUrl / ingestPublicHostname");
+    process.exit(1);
+  }
+  const wanToken = process.env.FOREVERLAN_TOKEN || cfgJson.lanToken || "";
 
   async function probeAccessChallenge(url) {
     const res = await fetch(url, { redirect: "manual" });

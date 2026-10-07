@@ -6,7 +6,9 @@
   "listenHost": "127.0.0.1",
   "listenPort": 8765,
   "lanToken": "GENERATE_A_LONG_RANDOM_TOKEN",
-  "lanRoster": ["Alex River", "Sam Hill", "Jordan Vale", "Casey Brook"],
+  "lanRoster": ["First Last", "Friend Character"],
+  "lanRosterAliases": {},
+  "lanBoardExclude": [],
   "lanName": "Forever Leveling",
   "lanLevelCap": 60
 }
