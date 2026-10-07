@@ -1,50 +1,94 @@
-# Forever LAN (WoW addon)
+# Forever LAN
 
-Offline-first telemetry addon for a **local Forever leveling LAN**.  
-It observes your character (and remembered party names), queues events in SavedVariables, and never talks to the network itself.
+**Offline-first telemetry for World of Warcraft: Forever.**
 
-The **dashboard / LAN host** is a **separate companion** (not included in this CurseForge package). Friends at a LAN install that companion separately.
+Forever LAN is the lightweight in-game companion for a one-weekend WoW: Forever leveling LAN.
 
-## Install
+It quietly observes your character, records useful gameplay telemetry, and saves it locally in WoW SavedVariables. A separate Forever LAN companion can then collect that data and feed a local LAN dashboard with live progress, deaths, travel, professions, milestones, and more.
 
-1. Extract so you have `Interface/AddOns/ForeverLAN/ForeverLAN.toc` (and `.lua`).
-2. Restart the Forever client (or `/reload`).
-3. Enable **Forever LAN** in the AddOns list.
+**The addon itself never connects to the Internet.**
 
-## Commands
+## What it records
 
-| Command | What it does |
-|---------|----------------|
-| `/fl` | Help |
-| `/fl status` | Queue size, last Push flush, combat-log state |
-| `/fl options` | Options panel (push button, minimap, reminders) |
+Examples of what Forever LAN can queue locally:
+
+- Character login and level-ups
+- Zone / map changes
+- Approximate travel distance and jumps (sampled)
+- Deaths and resurrections
+- Professions, crafts, money, and quest snapshots
+- Combat time and selected loot
+- Party / roster signals (your character always; friends when remembered or also running ForeverLAN)
+
+Events keep their original timestamps so a local companion can catch up later if the host was offline.
+
+## Built for a LAN, not a cloud service
+
+- No server connection from the addon
+- No account
+- No LAN token or host URL in the public package
+- No network upload from the addon
+- Data stays in SavedVariables until you Push or log out
+- Collection continues while the host is down
+
+A separate local companion reads those files and talks to the LAN host.
 
 ## Push LAN
 
-**Push LAN does not send data over the network.**
+The small **FL** control:
 
-It:
+- **Left-click — Push LAN** — write the queue to disk (UI reload). Disk flush, not a network send.
+- **Right-click — Combat Log** — enable `/combatlog` once when needed (does not call the protected LoggingCombat API).
 
-1. Snapshots your character’s pending events into SavedVariables
-2. Keeps the pending queue (so a crash cannot erase unread events)
-3. Reloads the UI so WoW writes SavedVariables to disk
+## Party tracking
 
-An external collector (LAN companion) reads that file and posts events to the host when it is online.
+Your character is always tracked.
 
-Works without a host: events keep accumulating with original timestamps (offline-first / Friday→Saturday catch-up).
+Optional friends:
 
-## Optional combat log
+```
+/fl remember First Last
+/fl roster
+/fl forget First Last
+```
 
-Use the **Enable Combat Log** button (or type `/combatlog` yourself).  
-The addon does **not** silently turn combat logging on. On Forever, `LoggingCombat(true)` is protected; the button feeds `/combatlog` through the chat box on a real click.
+Forever names use full **First Last** identity. No hardcoded LAN player names in the public CurseForge package.
 
-## Multi-character
+## Commands
 
-Each WoW character has its **own** SavedVariables file (`ForeverLANCharDB`, via `SavedVariablesPerCharacter`).
-Switching characters cannot inherit another character’s pending queue — the client isolates the files.
+| Command | Action |
+|---------|--------|
+| `/fl` | Help |
+| `/fl status` | Queue, last flush, combat-log state |
+| `/fl roster` | Remembered names + party snapshot |
+| `/fl remember First Last` | Remember a friend |
+| `/fl forget First Last` | Remove a remembered name |
+| `/fl push` | Same as left-click Push LAN |
 
-Account-wide `ForeverLANDB` only holds UI settings (and temporary leftovers while migrating older installs).
+## Install
+
+1. Extract so `Interface/AddOns/ForeverLAN/` contains `ForeverLAN.toc` and `ForeverLAN.lua`.
+2. Restart the client (or `/reload`).
+3. Enable **Forever LAN** in the AddOns list.
+
+## Forever LAN pipeline
+
+```
+WoW Forever → this addon → SavedVariables → local companion → LAN host → dashboard
+```
+
+The companion and dashboard are **not** included in the CurseForge package.
 
 ## Privacy
 
-This addon does not embed LAN tokens, host URLs, or network config.
+Local collection only. No network credentials in the public addon.
+
+## Requirements
+
+World of Warcraft: Forever
+
+## License
+
+MIT — see `LICENSE`.
+
+Source: https://github.com/Nyandu-wow/ForeverLAN

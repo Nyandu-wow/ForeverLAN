@@ -26,10 +26,17 @@ function readVersion(tocText) {
 }
 
 function syncInterface() {
-  execFileSync(process.execPath, [path.join(phase1, "scripts", "sync-addon-interface.mjs")], {
-    cwd: phase1,
-    stdio: "inherit",
-  });
+  try {
+    execFileSync(process.execPath, [path.join(phase1, "scripts", "sync-addon-interface.mjs")], {
+      cwd: phase1,
+      stdio: "inherit",
+    });
+  } catch (err) {
+    console.warn(
+      "[prepare-curseforge] interface sync skipped:",
+      err && err.message ? err.message : err
+    );
+  }
 }
 
 function copyAddon() {

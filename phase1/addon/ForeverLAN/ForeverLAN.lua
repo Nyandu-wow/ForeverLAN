@@ -1,58 +1,26 @@
 --[[
-  Forever LAN - local WoW telemetry companion (offline-first).
+  Forever LAN
 
-  Works without a host. Observes the played character (+ remembered party names)
-  via Unit* APIs and queues events locally.
+  Offline-first character telemetry for a local Forever leveling LAN.
+  Queues events in SavedVariables. Does not use the network.
 
-  DATA COLLECTION:
-    WoW â†’ Addon â†’ ForeverLANCharDB.pending (SavedVariablesPerCharacter)
-    Events keep original time() stamps. Dashboard / LAN host may be offline.
-    LIVE: external collector drains SavedVariables â†’ outbox while host is up.
-    CATCH-UP: local queue + collector outbox survive; host rebuilds by ev.ts.
+  ForeverLANDB     - account settings
+  ForeverLANCharDB - per-character pending queue (schema 3)
 
-  SavedVariables (schema 3):
-    ForeverLANDB (account-wide)
-      settings, capabilities, leftover migration data
-    ForeverLANCharDB (per character - WoW isolates this file)
-      pending / seq / export / last_flush_*
-
-  One WoW character = one independent telemetry queue (enforced by the client).
-  character_key = full Forever name + realm ("First Last") - never a first-name-only UnitName token.
-
-  Egress (addon never talks to the network):
-    - ForeverLANCharDB â†’ disk on logout or Push LAN â†’ C_UI.Reload
-    - Optional combat log file: one click sends /combatlog, then the line locks.
-      A second click does not send it again (/combatlog toggles off).
-
-  Push LAN is a DISK FLUSH, not a network send:
-    1) Snapshot this character's pending into export
-    2) Keep pending (so a second crash/reload cannot erase unread events)
-    3) C_UI.Reload so WoW writes SavedVariables to disk
-    4) Local companion/collector reads SV â†’ outbox â†’ POST /events when host is up
-  Stable event.id + host 409 handle duplicates.
-  Cap = MAX_PENDING (prefer DROP_UNDER_PRESSURE, else oldest).
-
-  NEVER call LoggingCombat(true) - protected on Forever (Action Blocked).
-  One click may send /combatlog. Further clicks do nothing until the game says logging is off.
-  NEVER call CopyToClipboard - blocked even from button clicks.
+  Push LAN writes SavedVariables to disk (reload), then an optional external
+  companion may read that file. LoggingCombat(true) and CopyToClipboard are
+  never called (protected on Forever).
 ]]
 
 local ADDON_NAME = ...
-local ADDON_VERSION = "0.1.62"
--- 3 = SavedVariablesPerCharacter queue (ForeverLANCharDB).
+local ADDON_VERSION = "0.1.67"
 local SV_SCHEMA = 3
--- Remembered LAN names. Forever names are always "First Last". Exact match only.
-local LAN_ROSTER = { "Alex River", "Sam Hill", "Jordan Vale", "Casey Brook" }
--- Bare first-name aliases for party UnitName (never Alex — multiple alts).
-local LAN_ROSTER_ALIASES = {
-  casey = "Casey Brook",
-  jordan = "Jordan Vale",
-  sam = "Sam Hill",
-}
+-- Optional friend-pack inject (ForeverLAN_Party.lua). CurseForge ships empty.
+local BUILTIN_ROSTER = (ForeverLAN_Party and ForeverLAN_Party.roster) or {}
+local BUILTIN_ALIASES = (ForeverLAN_Party and ForeverLAN_Party.aliases) or {}
 local PREFIX = "FOREVERLAN_CLIP|"
--- High-signal events are protected when trimming; telemetry drops first.
 local MAX_PENDING = 1500
--- Drop these before dings/deaths/login when the queue is under pressure.
+-- Prefer dropping these when the queue is full.
 local DROP_UNDER_PRESSURE = {
   PLAYER_DISTANCE = true,
   PLAYER_FOOD_BUFF = true,
@@ -67,8 +35,7 @@ local DROP_UNDER_PRESSURE = {
   WORLD_ENTER = true,
   POSITION_UPDATE = true,
 }
--- Snapshot / cumulative streams: keep one pending row per type+guid (+ map_kind).
--- Do NOT coalesce PLAYER_CRAFT — each craft is a discrete observed action.
+-- Keep one pending row per type+guid (+ map_kind). Crafts stay one-per-action.
 local COALESCE_PENDING = {
   PLAYER_DISTANCE = true,
   PLAYER_FOOD_BUFF = true,
@@ -84,14 +51,12 @@ local COALESCE_PENDING = {
 }
 local ROSTER_POLL = 4.0
 local SELF_POLL = 8.0
--- Ignore teleports / loading screens when summing yards (instance-relative UnitPosition).
+local TRAVEL_POLL = 2.0
 local MAX_STEP_YARDS = 80
 local MIN_STEP_YARDS = 0.4
 local DISTANCE_EMIT_YARDS = 120
 local JUMP_EMIT_EVERY = 8
 
--- Quiet pin UI. Collection stays offline-first; no Ace, no CLEU.
--- Quiet by default - this addon is a disk/collector pin, not a dashboard.
 local SETTINGS_DEFAULTS = {
   show_push_button = true,
   lock_push_button = false,
@@ -125,7 +90,6 @@ local ui = {
 local function ensureSettings()
   ForeverLANDB.settings = ForeverLANDB.settings or {}
   local s = ForeverLANDB.settings
-  -- One-time: switch to the quiet pin UI (no chat spam / minimap / options).
   if ForeverLANDB.ui_mode ~= "pin" then
     ForeverLANDB.ui_mode = "pin"
     s.announce_events = false
@@ -195,7 +159,7 @@ local function normalizeRealm(raw)
 end
 
 --- Forever names are always "First Last". That convention leads.
---- UnitName / UnitNameUnmodified second return is the surname — never the realm.
+--- UnitName / UnitNameUnmodified second return is the surname - never the realm.
 --- Realm comes from UnitFullName's second return or GetNormalizedRealmName.
 local function parseForeverName(first, second, realm)
   first = type(first) == "string" and first or ""
@@ -211,7 +175,7 @@ local function parseForeverName(first, second, realm)
     firstName, lastName = a or first, b or ""
     -- If UnitName also returned a surname token and first already had both parts, keep split.
   elseif second ~= "" then
-    -- Forever: second is surname (e.g. Sam + This). Never treat as realm.
+    -- Forever: second return is surname. Never treat as realm.
     firstName, lastName = first, second
   else
     firstName, lastName = first, ""
@@ -239,7 +203,7 @@ local function fetchUnitNameParts(unit)
   if type(second) ~= "string" then
     second = ""
   end
-  -- Realm only from UnitFullName (name, realm) — not from UnitName's surname slot.
+  -- Realm only from UnitFullName (name, realm) - not from UnitName's surname slot.
   local realmFromFull = ""
   if type(UnitFullName) == "function" then
     local fn, fr = UnitFullName(unit)
@@ -691,12 +655,112 @@ end
 
 local snapshotUnit -- forward decl for emitSelfTelemetry
 
+-- Remembered LAN names: builtins (friend pack) + ForeverLANDB.settings (user /fl remember).
 local rosterKeys = {}
-for _, n in ipairs(LAN_ROSTER) do
-  local key = fullKey(tostring(n))
-  if key ~= "" then
-    rosterKeys[key] = true
+local rosterAliases = {}
+
+local function rebuildRosterIndex()
+  wipe(rosterKeys)
+  wipe(rosterAliases)
+  local function addName(n)
+    local key = fullKey(tostring(n))
+    if key ~= "" then
+      rosterKeys[key] = true
+    end
   end
+  local function addAlias(bare, full)
+    if type(bare) ~= "string" or type(full) ~= "string" then
+      return
+    end
+    local bk = string.lower((bare:match("^%s*([^%s%-]+)") or bare))
+    if bk ~= "" and fullKey(full) ~= "" then
+      rosterAliases[bk] = full
+    end
+  end
+  for _, n in ipairs(BUILTIN_ROSTER) do
+    addName(n)
+  end
+  for bare, full in pairs(BUILTIN_ALIASES) do
+    addAlias(bare, full)
+  end
+  local s = ForeverLANDB and ForeverLANDB.settings
+  if s and type(s.remembered_roster) == "table" then
+    for _, n in ipairs(s.remembered_roster) do
+      addName(n)
+    end
+  end
+  if s and type(s.remembered_aliases) == "table" then
+    for bare, full in pairs(s.remembered_aliases) do
+      addAlias(bare, full)
+    end
+  end
+end
+
+local function rememberedRosterList()
+  local out, seen = {}, {}
+  local function push(n)
+    local key = fullKey(tostring(n))
+    if key ~= "" and not seen[key] then
+      seen[key] = true
+      out[#out + 1] = tostring(n)
+    end
+  end
+  for _, n in ipairs(BUILTIN_ROSTER) do
+    push(n)
+  end
+  local s = ForeverLANDB and ForeverLANDB.settings
+  if s and type(s.remembered_roster) == "table" then
+    for _, n in ipairs(s.remembered_roster) do
+      push(n)
+    end
+  end
+  table.sort(out)
+  return out
+end
+
+local function rememberLanName(fullName)
+  fullName = type(fullName) == "string" and fullName:gsub("^%s+", ""):gsub("%s+$", "") or ""
+  if fullName == "" or not fullName:find("%s") then
+    return false, "Use Forever full name: First Last"
+  end
+  local s = ensureSettings()
+  s.remembered_roster = s.remembered_roster or {}
+  local key = fullKey(fullName)
+  for _, n in ipairs(s.remembered_roster) do
+    if fullKey(n) == key then
+      rebuildRosterIndex()
+      return true, "already remembered"
+    end
+  end
+  s.remembered_roster[#s.remembered_roster + 1] = fullName
+  rebuildRosterIndex()
+  return true, "remembered"
+end
+
+local function forgetLanName(fullName)
+  fullName = type(fullName) == "string" and fullName:gsub("^%s+", ""):gsub("%s+$", "") or ""
+  if fullName == "" then
+    return false, "Usage: /fl forget First Last"
+  end
+  local s = ensureSettings()
+  s.remembered_roster = s.remembered_roster or {}
+  local key = fullKey(fullName)
+  local kept = {}
+  for _, n in ipairs(s.remembered_roster) do
+    if fullKey(n) ~= key then
+      kept[#kept + 1] = n
+    end
+  end
+  s.remembered_roster = kept
+  if type(s.remembered_aliases) == "table" then
+    for bare, full in pairs(s.remembered_aliases) do
+      if fullKey(full) == key then
+        s.remembered_aliases[bare] = nil
+      end
+    end
+  end
+  rebuildRosterIndex()
+  return true, "forgot"
 end
 
 local function isRememberedLanName(name)
@@ -704,8 +768,8 @@ local function isRememberedLanName(name)
   if key ~= "" and rosterKeys[key] == true then
     return true
   end
-  -- Explicit bare aliases only (Casey / Jordan) — never fuzzy Alex.
-  local alias = LAN_ROSTER_ALIASES[key]
+  -- Bare first-name alias only when explicitly configured (never fuzzy).
+  local alias = rosterAliases[key]
   if type(alias) == "string" then
     local ak = fullKey(alias)
     return ak ~= "" and rosterKeys[ak] == true
@@ -1118,7 +1182,7 @@ local function findCoalesceTarget(eventType, fields)
   for i = #pending, 1, -1 do
     local ev = pending[i]
     if ev and ev.type == eventType and ev.guid == guid then
-      -- Already covered by last Push/logout — mint a new row (new id + ts) so the
+      -- Already covered by last Push/logout - mint a new row (new id + ts) so the
       -- host gets the update and the pin can show unsaved again.
       local evTs = tonumber(ev.ts) or 0
       if flushedAt > 0 and evTs <= flushedAt then
@@ -1304,7 +1368,22 @@ local function plainNumber(v)
   return nil
 end
 
---- Sum plain numbers; nil terms count as 0. Any secret term â†’ nil (blocked).
+--- Forever can also mark chat / system text as a secret string; comparing it while
+--- tainted throws ("attempt to compare ... a secret string value").
+local function isPlainString(v)
+  if type(v) ~= "string" then
+    return false
+  end
+  if issecretvalue and issecretvalue(v) then
+    return false
+  end
+  if canaccessvalue and not canaccessvalue(v) then
+    return false
+  end
+  return true
+end
+
+--- Sum plain numbers; nil terms count as 0. Any secret term -> nil (blocked).
 local function sumPlain(...)
   local total = 0
   local n = select("#", ...)
@@ -1407,20 +1486,16 @@ local function professionsKey(list)
   return table.concat(parts, "|")
 end
 
--- Slice B probe: discover Forever craft/gather/skill chat + APIs.
--- Print-only (+ ForeverLANDB.craftProbe). Does NOT enqueue dashboard events.
+-- Optional /fl craftprobe: listen for craft/gather chat without enqueueing events.
 local craftProbeFrame = nil
 local craftProbeHits = nil
 local craftProbeStopAt = 0
 
---- True when chat text is about the local player (not nearby crafters).
 local function craftProbeIsSelfMessage(msg)
-  msg = tostring(msg or "")
-  if msg == "" then
+  if not isPlainString(msg) or msg == "" then
     return false
   end
   local lower = string.lower(msg)
-  -- English self lines: "You createâ€¦", "Your skill inâ€¦"
   if string.find(lower, "^you[%s']") or string.find(lower, "^your%s") then
     return true
   end
@@ -1435,10 +1510,8 @@ local function craftProbeIsSelfMessage(msg)
     local nextChar = string.sub(lower, #n + 1, #n + 1)
     return nextChar == "" or nextChar == " " or nextChar == "-" or nextChar == "'"
   end
-  -- Forever TRADESKILLS uses full names: "Alex River creates â€¦".
-  -- A bare first name is someone else's ("Alex Brook" nearby).
-  local full = splitNameRealm("player")
-  return namePrefixMatch(full)
+  -- Match the played full name only (never bare first name).
+  return namePrefixMatch(splitNameRealm("player"))
 end
 
 local function craftProbeApiSnapshot()
@@ -1478,14 +1551,12 @@ local function stopCraftProbe(reason)
     hit_count = #hits,
   }
   print(string.format(
-    "[ForeverLAN] craftprobe %s - %d chat hits (SavedVariables craftProbe; Push LAN to persist)",
+    "[ForeverLAN] craftprobe %s - %d chat hits (stored in SavedVariables; Push LAN to write disk)",
     tostring(reason or "done"),
     #hits
   ))
   if #hits == 0 then
-    print("  No skill/create/gather lines seen. Retry while crafting or gathering.")
-  else
-    print("  Paste HIT lines to the host - Slice B ships only after Forever wording is confirmed.")
+    print("  No craft/gather lines seen. Try again while crafting or gathering.")
   end
   craftProbeHits = nil
 end
@@ -1496,7 +1567,7 @@ local function startCraftProbe(seconds)
   if seconds > 300 then seconds = 300 end
 
   local apis = craftProbeApiSnapshot()
-  print("[ForeverLAN] craftprobe - Forever Slice B capability check (print-only, no ingest)")
+  print("[ForeverLAN] craftprobe - listening only (does not enqueue events)")
   print(string.format(
     "  GetProfessions=%s GetProfessionInfo=%s GetSkillLineInfo=%s",
     tostring(apis.GetProfessions),
@@ -1545,7 +1616,11 @@ local function startCraftProbe(seconds)
       end
       msg = string.format("unit=%s spell=%s", tostring(a1), tostring(a3 or a2))
     else
-      msg = tostring(a1 or "")
+      -- Skip secret system/loot chat (same Forever taint path as combat-log watcher).
+      if not isPlainString(a1) then
+        return
+      end
+      msg = a1
       -- Forever TRADESKILLS chat is zone-wide ("Name creates Item.") - keep self only.
       if not craftProbeIsSelfMessage(msg) then
         return
@@ -1569,7 +1644,7 @@ local function startCraftProbe(seconds)
       end
     end
     if #msg > 220 then
-      msg = string.sub(msg, 1, 220) .. "â€¦"
+      msg = string.sub(msg, 1, 220) .. "..."
     end
     print("|cff66ff66[ForeverLAN] craftprobe HIT:|r " .. event .. " | " .. msg)
     if craftProbeHits then
@@ -1602,7 +1677,7 @@ local function startCraftProbe(seconds)
     end)
   end
   chat(string.format(
-    "Craftprobe ON for %ds - craft, gather, or skill-up now. |cffffffff/fl craftprobe stop|r to finish early.",
+    "Craft probe on for %ds - craft or gather now. |cffffffff/fl craftprobe stop|r to finish.",
     seconds
   ))
 end
@@ -1838,11 +1913,35 @@ local function readMoney()
   }, "GetMoney"
 end
 
+-- Aura/money/quest/power fire in bursts; one full snapshot per second is enough.
+-- Login / map / poll / skill lines stay immediate so the board does not wait.
+-- One table (not three locals) - Forever's 200-local main-chunk ceiling.
+local selfTelemetryGate = {
+  gap = 1.0,
+  lastAt = 0,
+  immediate = {
+    login = true,
+    world_enter = true,
+    skill_lines = true,
+    jump = true,
+    world_map = true,
+    minimap = true,
+    poll = true,
+  },
+}
+
 local function emitSelfTelemetry(reason, opts)
   opts = opts or {}
   if not UnitExists("player") then
     return
   end
+  local t = (GetTime and GetTime()) or 0
+  if not selfTelemetryGate.immediate[reason or ""] then
+    if (t - selfTelemetryGate.lastAt) < selfTelemetryGate.gap then
+      return
+    end
+  end
+  selfTelemetryGate.lastAt = t
   local snap = snapshotUnit("player", {}) or {}
   local silent = opts.silent ~= false
 
@@ -2007,7 +2106,7 @@ local function emitSelfTelemetry(reason, opts)
         reason = reason,
       }, { silent = silent })
     end
-    -- Money dropped while a repairable merchant is open â‰ˆ repairs (may include vendor buys).
+    -- Money dropped while a repairable merchant is open ~= repairs (may include vendor buys).
     if prev ~= nil and type(money.copper) == "number" and money.copper < prev then
       local lost = prev - money.copper
       local atRepair = false
@@ -2169,11 +2268,7 @@ local function readMemberZone(unit, raidIndex)
   return "", "unavailable"
 end
 
---[[
-  Position probe - Forever capability discovery.
-  Never invent coordinates. Each field records what the client actually returned.
-  accuracy: EXACT | ZONE | INFERRED | UNKNOWN
-]]
+-- Compact position snapshot from UnitPosition / C_Map (no invented coordinates).
 local function probePosition(unit)
   local out = {
     unit = unit,
@@ -2764,7 +2859,8 @@ local function qualityFromLootColor(color)
 end
 
 local function handleLootChat(msg)
-  if type(msg) ~= "string" then
+  -- Same secret-string path as combat-log / tradeskill chat (party combat).
+  if not isPlainString(msg) or msg == "" then
     return
   end
   if not (string.find(msg, "^You receive loot:") or string.find(msg, "^You receive item:")) then
@@ -2808,9 +2904,10 @@ local function handleLootChat(msg)
   })
 end
 
---- Forever zone-wide craft chat: "Name creates Item." Self only â†’ PLAYER_CRAFT.
+--- Forever zone-wide craft chat: "Name creates Item." Self only -> PLAYER_CRAFT.
 local function handleTradeskillChat(msg)
-  if type(msg) ~= "string" or msg == "" then
+  -- Skip secret chat text (Forever SecretValues); comparing it throws while tainted.
+  if not isPlainString(msg) or msg == "" then
     return
   end
   if not craftProbeIsSelfMessage(msg) then
@@ -2887,17 +2984,17 @@ end
 local function pinStatusLine()
   local n = pendingCountForButton()
   if n > 0 then
-    return tostring(n) .. " not on disk — left-click Push"
+    return tostring(n) .. " not on disk - left-click Push"
   end
   local flushedAt = flushMeta().last_flush_at
   if flushedAt > 0 then
     if #pending > 0 and pendingFullyFlushedToDisk() then
-      return "saved to disk — collector sends when host is up"
+      return "saved to disk - collector sends when host is up"
     end
     return "saved to disk"
   end
   if #pending > 0 then
-    return tostring(#pending) .. " queued — left-click Push"
+    return tostring(#pending) .. " queued - left-click Push"
   end
   return "queue empty"
 end
@@ -2952,7 +3049,7 @@ ui.doPushLan = function()
   if n == 0 then
     chat("Reloading for collector.")
   else
-    chat(string.format("Saved %d · collector sends when host is up.", n))
+    chat(string.format("Saved %d - collector sends when host is up.", n))
   end
   pushingLan = true
   reloadForCollector()
@@ -3016,7 +3113,7 @@ ui.dock:SetScript("OnEnter", function(self)
   GameTooltip:AddLine("Forever LAN", 0.7, 0.85, 1)
   GameTooltip:AddLine(pinStatusLine(), 1, 1, 1)
   GameTooltip:AddLine("Combat log: " .. combatLogStatusLabel(), 0.85, 0.85, 0.7)
-  GameTooltip:AddLine("Left: Push to disk · Right: /combatlog once", 0.65, 0.65, 0.65)
+  GameTooltip:AddLine("Left: Push to disk - Right: /combatlog once", 0.65, 0.65, 0.65)
   GameTooltip:Show()
 end)
 ui.dock:SetScript("OnLeave", function()
@@ -3029,24 +3126,33 @@ local combatSlashSent = false
 local refreshCombatLogButton
 
 local function noteCombatLogChat(msg)
-  if type(msg) ~= "string" or msg == "" then
+  -- Hall of Thanes / party combat: Forever can deliver CHAT_MSG_SYSTEM as a
+  -- secret string. Comparing it while tainted errors the addon (General.log
+  -- 2026-10-06). Combat-log on/off confirmations are plain; ignore the rest.
+  if not isPlainString(msg) or msg == "" then
     return
   end
-  local off = (COMBATLOGDISABLED and msg == COMBATLOGDISABLED) or false
-  local on = (COMBATLOGENABLED and msg == COMBATLOGENABLED) or false
-  if not off and not on then
-    local lower = string.lower(msg)
-    local about = string.find(lower, "combat log", 1, true) or string.find(lower, "combat logging", 1, true)
-    if not about then
-      return
+  local okMatch, off, on = pcall(function()
+    local isOff = (COMBATLOGDISABLED and msg == COMBATLOGDISABLED) or false
+    local isOn = (COMBATLOGENABLED and msg == COMBATLOGENABLED) or false
+    if not isOff and not isOn then
+      local lower = string.lower(msg)
+      local about = string.find(lower, "combat log", 1, true) or string.find(lower, "combat logging", 1, true)
+      if not about then
+        return false, false
+      end
+      if string.find(lower, "disabled", 1, true) or string.find(lower, "stopped", 1, true) then
+        isOff = true
+      elseif string.find(lower, "enabled", 1, true) or string.find(lower, "being logged", 1, true) then
+        isOn = true
+      else
+        return false, false
+      end
     end
-    if string.find(lower, "disabled", 1, true) or string.find(lower, "stopped", 1, true) then
-      off = true
-    elseif string.find(lower, "enabled", 1, true) or string.find(lower, "being logged", 1, true) then
-      on = true
-    else
-      return
-    end
+    return isOff, isOn
+  end)
+  if not okMatch then
+    return
   end
   if off then
     setCombatLogUiOn(false)
@@ -3056,6 +3162,8 @@ local function noteCombatLogChat(msg)
     setCombatLogUiOn(true)
     combatSlashSent = true
     combatLogClickPending = false
+  else
+    return
   end
   if refreshCombatLogButton then
     refreshCombatLogButton()
@@ -3105,7 +3213,7 @@ local function requestCombatLogOnce()
     end
     return
   end
-  -- Sticky/session flag must not block when the API says off — that was the bug.
+  -- Sticky/session flag must not block when the API says off - that was the bug.
   if live == false then
     setCombatLogUiOn(false)
     combatSlashSent = false
@@ -3119,12 +3227,12 @@ local function requestCombatLogOnce()
   local ok = sendCombatLogSlash()
   if not ok then
     combatLogClickPending = false
-    chat("Could not send from the pin — type |cffffffff/combatlog|r once yourself.")
+    chat("Could not send from the pin - type |cffffffff/combatlog|r once yourself.")
     return
   end
   combatSlashSent = true
   -- Do not mark ON until CHAT_MSG_SYSTEM (or LoggingCombat) confirms.
-  chat("Sent /combatlog — waiting for the game to confirm.")
+  chat("Sent /combatlog - waiting for the game to confirm.")
   if C_Timer and C_Timer.After then
     C_Timer.After(0.5, function()
       if isCombatLogging() == true then
@@ -3181,14 +3289,14 @@ ui.applyUiSettings = function()
 end
 
 ui.printHelp = function()
-  chat("|cffffffff/fl|r status · |cffffffffpush|r save · |cffffffffcombatlog|r once · |cffffffffhide|r/|cffffffffshow|r · |cfffffffflock|r")
+  chat("|cffffffff/fl|r status | push | combatlog | roster | remember First Last | forget First Last")
 end
 
 ui.printStatus = function()
   local snap = snapshotUnit("player", {})
   local who = snap and snap.character or UnitName("player") or "?"
   chat(string.format(
-    "v%s · %s · queue %d · %s · combatlog %s",
+    "v%s - %s - queue %d - %s - combatlog %s",
     ADDON_VERSION,
     who,
     #pending,
@@ -3201,9 +3309,7 @@ function ForeverLAN_OnAddonCompartmentClick()
   ui.doPushLan()
 end
 
--- Party hello: tells groupmates' ForeverLAN which GUID runs the addon, so they
--- sync us even when our full name is not on their remembered roster.
--- Forever addon-comms delivery is UNVERIFIED; the roster still works without it.
+-- Party hello: announce this character's GUID to groupmates running ForeverLAN.
 local COMMS_PREFIX = "ForeverLAN"
 local HELLO_MIN_GAP = 5
 local lastHelloAt = 0
@@ -3230,7 +3336,7 @@ local function sendHello(force)
 end
 
 local function onAddonMessage(prefix, text)
-  if prefix ~= COMMS_PREFIX or type(text) ~= "string" then
+  if prefix ~= COMMS_PREFIX or not isPlainString(text) then
     return
   end
   local guid, version = text:match("^HELLO|(Player%-[^|]+)|([^|]*)$")
@@ -3292,6 +3398,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
     ForeverLANDB = ForeverLANDB or {}
     ForeverLANCharDB = ForeverLANCharDB or {}
     ensureSettings()
+    rebuildRosterIndex()
     ForeverLANDB.positionProbe = nil
     bindActiveCharacter()
     trimPendingOverCap()
@@ -3374,9 +3481,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
       setCombatLogUiOn(true)
     end
     ui.applyUiSettings()
-    -- Keep pending across Pushâ†’Reload. Collector/host dedupe by event.id.
-    -- Blind trim was dropping unread events when the dashboard was down.
-    -- Oldest entries still drop only at MAX_PENDING under pressure.
+    -- Pending survives Push->Reload; host dedupes by event.id.
     if isReloadingUi then
       ForeverLANDB.last_reload_pending = #pending
     end
@@ -3504,7 +3609,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
     emitCombatTime("logout", true)
     local snap = snapshotUnit("player", {}) or {}
     if pushingLan then
-      -- Push LAN reload — re-snapshot after emitCombatTime so the export still
+      -- Push LAN reload - re-snapshot after emitCombatTime so the export still
       -- contains the pre-reload queue (and any last combat-time row).
       saveForCollector()
       return
@@ -3589,6 +3694,13 @@ if C_Timer and C_Timer.NewTicker then
     end
     emitPartyRoster("poll", { silentOnly = true })
   end)
+  -- Sample yards often enough that mounted travel fits under MAX_STEP_YARDS.
+  C_Timer.NewTicker(TRAVEL_POLL, function()
+    if not enteredWorld then
+      return
+    end
+    sampleTravelDistance()
+  end)
   C_Timer.NewTicker(SELF_POLL, function()
     if not enteredWorld then
       return
@@ -3610,8 +3722,10 @@ end
 SLASH_FOREVERLAN1 = "/foreverlan"
 SLASH_FOREVERLAN2 = "/fl"
 SlashCmdList.FOREVERLAN = function(msg)
-  msg = (msg or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
-  local cmd = msg:match("^(%S+)") or ""
+  msg = (msg or ""):gsub("^%s+", ""):gsub("%s+$", "")
+  local cmd, rest = msg:match("^(%S+)%s*(.*)$")
+  cmd = string.lower(cmd or "")
+  rest = rest or ""
   if cmd == "" or cmd == "status" then
     ui.printStatus()
   elseif cmd == "help" or cmd == "?" then
@@ -3635,7 +3749,30 @@ SlashCmdList.FOREVERLAN = function(msg)
     requestCombatLogOnce()
   elseif cmd == "flush" or cmd == "push" then
     ui.doPushLan()
+  elseif cmd == "remember" or cmd == "add" then
+    local ok, info = rememberLanName(rest)
+    if ok then
+      chat(string.format("LAN roster: %s |cffffffff%s|r", info, rest))
+    else
+      chat(info or "Could not remember name")
+    end
+  elseif cmd == "forget" or cmd == "remove" then
+    local ok, info = forgetLanName(rest)
+    if ok then
+      chat(string.format("LAN roster: %s |cffffffff%s|r", info, rest ~= "" and rest or "?"))
+    else
+      chat(info or "Could not forget name")
+    end
   elseif cmd == "roster" then
+    local list = rememberedRosterList()
+    if #list == 0 then
+      chat("Remembered LAN names: (none) - |cffffffff/fl remember First Last|r")
+    else
+      chat("Remembered LAN names:")
+      for _, n in ipairs(list) do
+        print("  " .. n)
+      end
+    end
     emitPartyRoster("slash")
   elseif cmd == "quiet" then
     setSetting("announce_events", not setting("announce_events"))

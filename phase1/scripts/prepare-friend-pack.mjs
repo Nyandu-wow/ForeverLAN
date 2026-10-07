@@ -128,6 +128,25 @@ async function ensurePortableNode(runtimeDir) {
   console.log("portable node: ready + cached");
 }
 
+/** Inject weekend roster (not on CurseForge). Prepend ForeverLAN_Party.lua to TOC load order. */
+function injectFriendPartyDefaults(addonDir) {
+  const partySrc = path.join(phase1, "friend-client", "ForeverLAN_Party.lua");
+  if (!fs.existsSync(partySrc)) {
+    throw new Error("friend-client/ForeverLAN_Party.lua missing");
+  }
+  fs.copyFileSync(partySrc, path.join(addonDir, "ForeverLAN_Party.lua"));
+  for (const tocName of ["ForeverLAN.toc", "ForeverLAN_Camelot.toc"]) {
+    const tocPath = path.join(addonDir, tocName);
+    if (!fs.existsSync(tocPath)) continue;
+    let toc = fs.readFileSync(tocPath, "utf8");
+    if (!/ForeverLAN_Party\.lua/.test(toc)) {
+      toc = toc.replace(/^(ForeverLAN\.lua)\s*$/m, "ForeverLAN_Party.lua\n$1");
+      fs.writeFileSync(tocPath, toc, "utf8");
+    }
+  }
+  console.log("friend party defaults: injected into", addonDir);
+}
+
 function zipFriendPack(folderPath) {
   const zipPath = `${folderPath}.zip`;
   fs.rmSync(zipPath, { force: true });
@@ -164,10 +183,12 @@ async function main() {
 
   copyDir(path.join(phase1, "collector"), path.join(out, "collector"));
   copyDir(path.join(phase1, "addon", "ForeverLAN"), path.join(out, "addon", "ForeverLAN"));
+  injectFriendPartyDefaults(path.join(out, "addon", "ForeverLAN"));
   // Keep friend-pack/ addon mirror in sync for beta rebuilds (not a freeze artifact).
   const mirror = path.join(phase1, "friend-pack", "ForeverLAN");
   fs.rmSync(mirror, { recursive: true, force: true });
   copyDir(path.join(phase1, "addon", "ForeverLAN"), mirror);
+  injectFriendPartyDefaults(mirror);
 
   for (const name of [
     "INSTALL.bat",

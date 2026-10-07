@@ -10,7 +10,7 @@ alwaysApply: true
 | **MVP dashboard** | Accepted — Live / Characters / Timeline / Zones / Deaths / Wrap / Professions |
 | **Telemetry pipeline** | Working — keep stress-testing |
 | **Offline Friday → Saturday catch-up** | Working / design locked |
-| **Addon baseline** | **0.1.62** — Push-logout export; flushed-first cap trim; persisted travel/combat |
+| **Addon baseline** | **0.1.67** — empty public LAN roster (`/fl remember`); friend packs inject `ForeverLAN_Party.lua`; CurseForge zip generic |
 | **Phase 4 friend pack / LAN hosting** | **Active** — rebuild Windows + Steam Deck zips as code changes |
 | **Phase 3 storytelling** | Deferred until after the LAN weekend (board flavour OK now) |
 | **CurseForge / LAN DNS productization** | Parked (optional) |

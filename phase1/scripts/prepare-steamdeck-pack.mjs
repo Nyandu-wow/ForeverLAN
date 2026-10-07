@@ -40,6 +40,24 @@ function loadHostConfig() {
   return JSON.parse(fs.readFileSync(p, "utf8"));
 }
 
+/** Weekend roster for friend/Deck packs only (not CurseForge). */
+function injectFriendPartyDefaults(addonDir) {
+  const partySrc = path.join(phase1, "friend-client", "ForeverLAN_Party.lua");
+  if (!fs.existsSync(partySrc)) {
+    throw new Error("friend-client/ForeverLAN_Party.lua missing");
+  }
+  fs.copyFileSync(partySrc, path.join(addonDir, "ForeverLAN_Party.lua"));
+  for (const tocName of ["ForeverLAN.toc", "ForeverLAN_Camelot.toc"]) {
+    const tocPath = path.join(addonDir, tocName);
+    if (!fs.existsSync(tocPath)) continue;
+    let toc = fs.readFileSync(tocPath, "utf8");
+    if (!/ForeverLAN_Party\.lua/.test(toc)) {
+      toc = toc.replace(/^(ForeverLAN\.lua)\s*$/m, "ForeverLAN_Party.lua\n$1");
+      fs.writeFileSync(tocPath, toc, "utf8");
+    }
+  }
+}
+
 function toLf(text) {
   return String(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 }
@@ -255,12 +273,14 @@ async function main() {
   copyDir(path.join(phase1, "addon", "ForeverLAN"), path.join(out, "addon", "ForeverLAN"), {
     textExts: new Set([".toc", ".lua", ".md", ".txt"]),
   });
+  injectFriendPartyDefaults(path.join(out, "addon", "ForeverLAN"));
   // Keep friend-pack/ addon mirror aligned whenever Deck packs rebuild.
   const mirror = path.join(phase1, "friend-pack", "ForeverLAN");
   fs.rmSync(mirror, { recursive: true, force: true });
   copyDir(path.join(phase1, "addon", "ForeverLAN"), mirror, {
     textExts: new Set([".toc", ".lua", ".md", ".txt"]),
   });
+  injectFriendPartyDefaults(mirror);
 
   for (const name of [
     "agent.js",
