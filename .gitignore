@@ -4,6 +4,7 @@ phase1/config.json
 .env
 .env.*
 !.env.example
+phase1/curseforge.json
 
 # Cloudflare Tunnel (local credentials + portable binary)
 phase1/cloudflare/config.yml

@@ -1,0 +1,9 @@
+{
+  "projectId": "REPLACE_WITH_NUMERIC_PROJECT_ID",
+  "endpoint": "wow",
+  "releaseType": "release",
+  "displayName": null,
+  "gameVersionNames": [],
+  "gameVersionIds": [],
+  "changelogFile": "addon/ForeverLAN/CHANGELOG.md"
+}

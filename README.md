@@ -38,6 +38,18 @@ Install from CurseForge, or build with:
 node phase1/scripts/prepare-curseforge-addon.mjs
 ```
 
+### Upload to CurseForge (API)
+
+1. Create a token: https://www.curseforge.com/account/api-tokens  
+2. Copy `.env.example` → `.env` and set `CURSEFORGE_API_TOKEN`  
+3. Copy `phase1/curseforge.example.json` → `phase1/curseforge.json` and set `projectId`  
+4. List game version IDs: `npm run upload:curseforge:versions --prefix phase1`  
+5. Put matching `gameVersionIds` (or names) in `curseforge.json`  
+6. Upload: `npm run upload:curseforge --prefix phase1`  
+
+Dry run: `npm run upload:curseforge:dry --prefix phase1`  
+Never commit `.env` or `curseforge.json`.
+
 In game: quiet **FL** pin — left-click Push (disk flush), right-click combat log once. `/fl status` · `/fl roster` · `/fl help`.
 
 ## Host (house LAN)
