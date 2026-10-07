@@ -1,0 +1,32 @@
+{
+  "name": "forever-lan",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Forever LAN — local weekend companion for WoW Forever",
+  "type": "module",
+    "scripts": {
+    "test": "node scripts/run-tests.mjs",
+    "smoke:parity": "node scripts/smoke-board-catalog.mjs",
+    "start": "node run.mjs",
+    "collector": "node collector/index.js",
+    "host": "node host/server.js",
+    "simulator": "node simulator/server.js",
+    "smoke": "node scripts/smoke-simulate.js",
+    "smoke:party": "node scripts/smoke-party.js",
+    "smoke:professions": "node scripts/smoke-professions.mjs",
+    "smoke:control-room": "node scripts/smoke-control-room.mjs",
+    "smoke:addon-multichar": "node scripts/smoke-addon-multichar.mjs",
+    "pack:curseforge": "node scripts/prepare-curseforge-addon.mjs",
+    "upload:curseforge": "node scripts/upload-curseforge.mjs",
+    "upload:curseforge:dry": "node scripts/upload-curseforge.mjs --dry-run",
+    "upload:curseforge:versions": "node scripts/upload-curseforge.mjs --list-versions",
+    "sync:addon-interface": "node scripts/sync-addon-interface.mjs",
+    "check:addon-interface": "node scripts/sync-addon-interface.mjs --check",
+    "install:addon": "scripts\\install-addon.bat",
+    "test:persistence": "node scripts/test-persistence.mjs",
+    "stress:reliability": "node scripts/stress-reliability.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

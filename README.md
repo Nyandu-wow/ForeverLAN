@@ -15,9 +15,9 @@ WoW Forever → Forever LAN addon → SavedVariables
 
 | Deliverable | What it is | Where |
 |-------------|------------|--------|
-| **CurseForge addon** | Generic offline telemetry pin — empty roster, no tokens | `phase1/dist/curseforge/ForeverLAN-*.zip` |
+| **CurseForge addon** | Generic offline telemetry pin — empty roster, no tokens | `dist/curseforge/ForeverLAN-*.zip` |
 | **Friend / Deck pack** | Addon + collector + agent + `party.json` (private) | `prepare-friend-pack` / `prepare-steamdeck-pack` |
-| **Host** | LAN dashboard + ingest on the host PC | `phase1/host` |
+| **Host** | LAN dashboard + ingest on the host PC | `host` |
 
 Do **not** publish friend/Deck zips publicly — they can contain a `lanToken`.
 
@@ -35,27 +35,27 @@ Lightweight in-game foundation for the LAN:
 Install from CurseForge, or build with:
 
 ```bash
-node phase1/scripts/prepare-curseforge-addon.mjs
+node scripts/prepare-curseforge-addon.mjs
 ```
 
 ### Upload to CurseForge (API)
 
 1. Create a token: https://www.curseforge.com/account/api-tokens  
 2. Copy `.env.example` → `.env` and set `CURSEFORGE_API_TOKEN`  
-3. Copy `phase1/curseforge.example.json` → `phase1/curseforge.json` and set `projectId`  
-4. List game version IDs: `npm run upload:curseforge:versions --prefix phase1`  
+3. Copy `curseforge.example.json` → `curseforge.json` and set `projectId`  
+4. List game version IDs: `npm run upload:curseforge:versions`  
 5. Put matching `gameVersionIds` (or names) in `curseforge.json`  
-6. Upload: `npm run upload:curseforge --prefix phase1`  
+6. Upload: `npm run upload:curseforge`  
 
-Dry run: `npm run upload:curseforge:dry --prefix phase1`  
+Dry run: `npm run upload:curseforge:dry`  
 Never commit `.env` or `curseforge.json`.
 
 In game: quiet **FL** pin — left-click Push (disk flush), right-click combat log once. `/fl status` · `/fl roster` · `/fl help`.
 
 ## Host (house LAN)
 
-1. Configure `phase1/config.json` (see `config.example.json`). Prefer LAN-only modes for the weekend.
-2. Start the host (`node phase1/run.mjs` or your start script).
+1. Configure `config.json` (see `config.example.json`). Prefer LAN-only modes for the weekend.
+2. Start the host (`node run.mjs` or your start script).
 3. Open `http://127.0.0.1:8765/`.
 
 Friends install the private friend zip, enable the addon, and Push LAN at breaks. Discovery never gates local collection.
@@ -68,11 +68,11 @@ Dashboard metrics use **Logged / Counted / Guessed**. Distance is sampled path l
 
 | Path | Role |
 |------|------|
-| `phase1/addon/ForeverLAN` | Public addon source (CurseForge) |
-| `phase1/friend-client` | Friend agent + optional `ForeverLAN_Party.lua` for INSTALL packs |
-| `phase1/collector` | SavedVariables / combat-log collector |
-| `phase1/host` | LAN dashboard + ingest |
-| `phase1/scripts` | Pack builders and smokes |
+| `addon/ForeverLAN` | Public addon source (CurseForge) |
+| `friend-client` | Friend agent + optional `ForeverLAN_Party.lua` for INSTALL packs |
+| `collector` | SavedVariables / combat-log collector |
+| `host` | LAN dashboard + ingest |
+| `scripts` | Pack builders and smokes |
 
 ## License
 

@@ -12,13 +12,13 @@ SaaS-style UI patterns are fine when they help. Architecture stays on the LAN ho
 
 | Doc | Role |
 |-----|------|
-| [`phase1/DATA_COLLECTION.md`](phase1/DATA_COLLECTION.md) | Offline-first pipeline, timestamps, catch-up |
-| [`phase1/HOSTING.md`](phase1/HOSTING.md) | LAN host notes (parked packaging) |
-| [`phase1/CAPABILITY_MATRIX.md`](phase1/CAPABILITY_MATRIX.md) | What the Forever client actually exposes |
+| [`DATA_COLLECTION.md`](DATA_COLLECTION.md) | Offline-first pipeline, timestamps, catch-up |
+| [`HOSTING.md`](HOSTING.md) | LAN host notes (parked packaging) |
+| [`CAPABILITY_MATRIX.md`](CAPABILITY_MATRIX.md) | What the Forever client actually exposes |
 | [`PHASE0_TELEMETRY_REPORT.md`](PHASE0_TELEMETRY_REPORT.md) | Phase 0 probe report |
-| [`phase1/PHASE1.md`](phase1/PHASE1.md) | Historical spike notes (stale — prefer this roadmap) |
+| [`PHASE1.md`](PHASE1.md) | Historical spike notes (stale — prefer this roadmap) |
 
-Working tree: `phase1/addon`, `phase1/collector`, `phase1/host` (active). `phase1/friend-client` parked.
+Working tree: `addon`, `collector`, `host` (active). `friend-client` parked.
 
 ---
 
@@ -145,7 +145,7 @@ Success means all of the following that the repo already supports:
 
 **Definition of Done:** Install paths, combat-log / WTF layout, and “what we can prove” are documented; product work does not invent unavailable APIs.
 
-**Out of scope:** Full capability matrix copy-paste here — use [`CAPABILITY_MATRIX.md`](phase1/CAPABILITY_MATRIX.md) and [`PHASE0_TELEMETRY_REPORT.md`](PHASE0_TELEMETRY_REPORT.md).
+**Out of scope:** Full capability matrix copy-paste here — use [`CAPABILITY_MATRIX.md`](CAPABILITY_MATRIX.md) and [`PHASE0_TELEMETRY_REPORT.md`](PHASE0_TELEMETRY_REPORT.md).
 
 ---
 
@@ -159,7 +159,7 @@ Success means all of the following that the repo already supports:
 
 | Piece | State |
 |-------|--------|
-| Addon ForeverLAN `0.1.12` (`phase1/addon`) | Delivered — SV pending, Push LAN / logout flush |
+| Addon ForeverLAN `0.1.12` (`addon`) | Delivered — SV pending, Push LAN / logout flush |
 | Collector — SV poll, combat-log tail, `outbox.jsonl` | Delivered |
 | Optional clipboard poll | Code still present; Forever blocks `CopyToClipboard` — **not** the primary path |
 | Host `POST /events` → `host-events.jsonl` + `foreverlan.sqlite` | Delivered |
@@ -167,7 +167,7 @@ Success means all of the following that the repo already supports:
 | Idempotent event `id` (duplicate → 409) | Delivered |
 | Multi-collector → one host | Delivered in code — collectors POST with the shared `lanToken` |
 | Session board `/lan` + SSE `/stream` | Delivered |
-| Friend plug-and-play agent + LAN auto-discover | Delivered — persistent rediscover + collector respawn ([`friend-client/`](phase1/friend-client/)) |
+| Friend plug-and-play agent + LAN auto-discover | Delivered — persistent rediscover + collector respawn ([`friend-client/`](friend-client/)) |
 
 **Definition of Done (operational):**
 
@@ -176,7 +176,7 @@ Success means all of the following that the repo already supports:
 - Catch-up rebuild sorts by original `ev.ts`.
 - Re-sending the same event id does not duplicate rows.
 - Multiple collectors can push into one weekend log.
-- Operator can run host + collector from `phase1` per [`DATA_COLLECTION.md`](phase1/DATA_COLLECTION.md).
+- Operator can run host + collector from the repo root per [`DATA_COLLECTION.md`](DATA_COLLECTION.md).
 
 **Out of scope:** Cloud sync, multi-host clustering, inventing XP or death causes the client does not provide.
 
@@ -272,7 +272,7 @@ Phase 3 storytelling chapters stay deferred until after the real weekend (board 
 
 **Purpose:** Friends install once (zip → INSTALL.bat); host is easy to run on the LAN without public exposure.
 
-**In tree:** `friend-client/`, `scripts/prepare-friend-pack.mjs`, firewall/beacon/discover, ops bats. See [`phase1/HOSTING.md`](phase1/HOSTING.md).
+**In tree:** `friend-client/`, `scripts/prepare-friend-pack.mjs`, firewall/beacon/discover, ops bats. See [`HOSTING.md`](HOSTING.md).
 
 **Out of scope for now:** CurseForge listing, Cloudflare Tunnel, public DNS productization.
 
@@ -280,15 +280,15 @@ Phase 3 storytelling chapters stay deferred until after the real weekend (board 
 
 ## Weekend runbook
 
-- **Start:** Desktop **Forever LAN** (or `phase1\scripts\start-weekend.bat`)
+- **Start:** Desktop **Forever LAN** (or `scripts\start-weekend.bat`)
 - **Board:** http://127.0.0.1:8765/
-- **Firewall (once, Admin):** `phase1\scripts\open-lan-firewall.bat`
-- **Friend zip (Windows):** `phase1\scripts\prepare-friend-zip.bat` → `phase1\dist\ForeverLAN-Friends.zip`
-- **Steam Deck zip:** `phase1\scripts\prepare-steamdeck-zip.bat` → `phase1\dist\ForeverLAN-SteamDeck.zip`
-- **Compat (after host change):** `node phase1/scripts/smoke-host-compat.mjs`
-- **Hot-update host mid-weekend:** `scripts\restart-host.bat` — keep `lanToken` + [`CLIENT_CONTRACT.md`](phase1/CLIENT_CONTRACT.md); addon stays FINAL
-- **Backup:** `phase1\scripts\backup-weekend-data.bat`
-- **Reset** (before the real weekend, host stopped): `phase1\scripts\reset-weekend-data.bat`
+- **Firewall (once, Admin):** `scripts\open-lan-firewall.bat`
+- **Friend zip (Windows):** `scripts\prepare-friend-zip.bat` → `dist\ForeverLAN-Friends.zip`
+- **Steam Deck zip:** `scripts\prepare-steamdeck-zip.bat` → `dist\ForeverLAN-SteamDeck.zip`
+- **Compat (after host change):** `node scripts/smoke-host-compat.mjs`
+- **Hot-update host mid-weekend:** `scripts\restart-host.bat` — keep `lanToken` + [`CLIENT_CONTRACT.md`](CLIENT_CONTRACT.md); addon stays FINAL
+- **Backup:** `scripts\backup-weekend-data.bat`
+- **Reset** (before the real weekend, host stopped): `scripts\reset-weekend-data.bat`
 
 ---
 
@@ -296,13 +296,13 @@ Phase 3 storytelling chapters stay deferred until after the real weekend (board 
 
 ### Now (Phase 4)
 
-1. Friend INSTALL pack rebuild + host runbook paths — done (`phase1\dist\ForeverLAN-Friends.zip`).
+1. Friend INSTALL pack rebuild + host runbook paths — done (`dist\ForeverLAN-Friends.zip`).
 2. Host ingest logging (`dataDir\ingest.log`) + `scripts\weekend-status.bat` — done.
 3. Discovery hardening (P0 config-only host URL; P1 IPv4 family; P2 beacon port) — done.
 4. Steam Deck pack (Unix ZIP paths, LF shell, bundled Node, Games/Forever detect) — done (`ForeverLAN-SteamDeck.zip`).
 5. Frozen client contract + mid-weekend host updates — done (`CLIENT_CONTRACT.md`, `restart-host.bat`, `smoke-host-compat.mjs`).
 6. Host pipeline stress (6–8 friends) — done (`scripts\stress-host-pipeline.mjs`).
-7. Host firewall once (Admin): `phase1\scripts\open-lan-firewall.bat` — the host runs on host-pc.
+7. Host firewall once (Admin): `scripts\open-lan-firewall.bat` — the host runs on host-pc.
 8. Before real LAN: reset practice/loadtest data (`reset-weekend-data.bat`), then freeze addon zips + token.
 9. Friend dry-run — Deck path exercised; Windows INSTALL dry-run still open if a Windows friend joins.
 10. Optional later: CurseForge / LAN DNS if still wanted.

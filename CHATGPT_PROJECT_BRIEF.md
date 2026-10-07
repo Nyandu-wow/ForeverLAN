@@ -82,23 +82,23 @@ Queue cap: **1500** pending; under pressure drops low-value types first; soft wa
 
 ## 4. Repo map (where code lives)
 
-Working tree under `phase1/` (active):
+Working tree at the repo root (active):
 
 | Path | Role |
 |------|------|
-| `phase1/addon/ForeverLAN/` | WoW addon (`ForeverLAN.lua` + `.toc`) — source of truth |
-| `phase1/collector/` | Reads SV + combat log → outbox → POST host |
-| `phase1/host/` | `server.js`, `lan-session.js`, analytics, SSE |
-| `phase1/host/public/` | Dashboard HTML/CSS/JS |
-| `phase1/friend-client/` | INSTALL.bat / Steam Deck agent packaging |
-| `phase1/friend-pack/` | Addon copy bundled into friend zips |
-| `phase1/scripts/` | `start-weekend.bat`, `restart-host.bat`, prepare zips, smoke tests |
-| `phase1/data/` | Local run data (jsonl etc.; may point via config `dataDir`) |
-| `phase1/CLIENT_CONTRACT.md` | **Frozen** HTTP ingest contract for friends |
-| `phase1/CAPABILITY_MATRIX.md` | What Forever client APIs actually expose (VERIFIED vs UNAVAILABLE) |
-| `phase1/DATA_COLLECTION.md` | Offline-first + timestamp rules |
-| `phase1/HOSTING.md` | Weekend host runbook |
-| `phase1/TRANSPORT.md` | Why Push LAN / combat log hybrid exists |
+| `addon/ForeverLAN/` | WoW addon (`ForeverLAN.lua` + `.toc`) — source of truth |
+| `collector/` | Reads SV + combat log → outbox → POST host |
+| `host/` | `server.js`, `lan-session.js`, analytics, SSE |
+| `host/public/` | Dashboard HTML/CSS/JS |
+| `friend-client/` | INSTALL.bat / Steam Deck agent packaging |
+| `friend-pack/` | Addon copy bundled into friend zips |
+| `scripts/` | `start-weekend.bat`, `restart-host.bat`, prepare zips, smoke tests |
+| `data/` | Local run data (jsonl etc.; may point via config `dataDir`) |
+| `CLIENT_CONTRACT.md` | **Frozen** HTTP ingest contract for friends |
+| `CAPABILITY_MATRIX.md` | What Forever client APIs actually expose (VERIFIED vs UNAVAILABLE) |
+| `DATA_COLLECTION.md` | Offline-first + timestamp rules |
+| `HOSTING.md` | Weekend host runbook |
+| `TRANSPORT.md` | Why Push LAN / combat log hybrid exists |
 | `ROADMAP.md` | Phases / ops map (may lag status — prefer §5 below) |
 
 **Dashboard pages (MVP accepted):** Live · Characters · Deaths · Explore · Timeline · Wrap  
@@ -162,14 +162,14 @@ When proposing metrics: check `CAPABILITY_MATRIX.md`. If status is UNAVAILABLE /
 
 ## 8. How the host runs things (ops)
 
-**Host weekend:** firewall once → `phase1\scripts\start-weekend.bat` → confirm `/health` + `/discover` on port **8765**.  
+**Host weekend:** firewall once → `scripts\start-weekend.bat` → confirm `/health` + `/discover` on port **8765**.  
 **Friend zips:** `prepare-friend-zip.bat` / `prepare-steamdeck-zip.bat` → private send (token inside).  
 **Hot host fix:** `restart-host.bat` — do not change token.  
 **Backup / reset:** `backup-weekend-data.bat` / `reset-weekend-data.bat` (reset only when intentional, host stopped).
 
 WoW Addon deploy path on the host's machine (dev):  
 `C:\Games\FOREVER\World of Warcraft\_classic_beta_\Interface\AddOns\ForeverLAN\`  
-Copy from `phase1/addon/ForeverLAN/` then `/reload` in-game.
+Copy from `addon/ForeverLAN/` then `/reload` in-game.
 
 ---
 
@@ -218,11 +218,11 @@ You are helping the host build Forever LAN: a one-weekend local LAN companion fo
 
 Priority order if you can attach more than this brief:
 
-1. `phase1/CLIENT_CONTRACT.md`
-2. `phase1/CAPABILITY_MATRIX.md`
-3. `phase1/DATA_COLLECTION.md`
-4. `phase1/HOSTING.md`
-5. `phase1/TRANSPORT.md`
+1. `CLIENT_CONTRACT.md`
+2. `CAPABILITY_MATRIX.md`
+3. `DATA_COLLECTION.md`
+4. `HOSTING.md`
+5. `TRANSPORT.md`
 6. `.cursor/rules/forever-lan-brief.mdc` (same product identity as §1–2)
 7. `.cursor/rules/forever-lan-status.mdc` (keep status in sync when it changes)
 

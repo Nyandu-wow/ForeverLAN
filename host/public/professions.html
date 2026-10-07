@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Forever LAN — Professions</title>
+    <script>
+      (function () {
+        try {
+          var f = localStorage.getItem("forever-lan-faction");
+          if (f !== "horde" && f !== "alliance") f = "alliance";
+          document.documentElement.setAttribute("data-faction", f);
+        } catch (e) {
+          document.documentElement.setAttribute("data-faction", "alliance");
+        }
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=IM+Fell+English:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/public/lan-chrome.css?v=horde2" />
+    <style>
+      .shell { display: flex; flex-direction: column; gap: 0.35rem; }
+      .honesty-chip {
+        display: inline-block;
+        margin-left: 0.35rem;
+        font-family: Cinzel, serif;
+        font-size: 0.5rem;
+        letter-spacing: 0.12em;
+        color: var(--ink-dim);
+        border: 1px solid var(--border);
+        padding: 0.08rem 0.3rem;
+        vertical-align: middle;
+      }
+      .broadcast {
+        border: 1px solid var(--border-strong);
+        background: var(--broadcast-warm);
+        padding: 0.4rem 0.75rem 0.45rem;
+      }
+      .broadcast .eyebrow {
+        font-family: Cinzel, serif;
+        font-size: 0.58rem;
+        letter-spacing: 0.16em;
+        color: var(--gold);
+        margin-bottom: 0.1rem;
+      }
+      .broadcast .line {
+        font-family: Cinzel, serif;
+        font-size: clamp(0.82rem, 1.5vw, 1.05rem);
+        letter-spacing: 0.06em;
+        color: var(--ink);
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .board {
+        display: grid;
+        grid-template-columns: 1.4fr 0.85fr;
+        gap: 0.35rem;
+      }
+      @media (max-width: 900px) {
+        .board { grid-template-columns: 1fr; }
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        padding: 0.4rem 0.55rem 0.45rem;
+      }
+      .panel h2 {
+        margin: 0 0 0.25rem;
+        font-family: Cinzel, serif;
+        font-size: var(--h2-size);
+        letter-spacing: var(--h2-track);
+        color: var(--gold);
+        font-weight: 600;
+      }
+      .coverage {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(9.25rem, 1fr));
+        gap: 0.3rem;
+      }
+      .prof-tile {
+        border: 1px solid var(--border);
+        background: var(--panel-inset);
+        padding: 0.3rem 0.4rem 0.35rem;
+        min-width: 0;
+      }
+      .prof-tile.open {
+        border-style: dashed;
+        opacity: 0.72;
+      }
+      .prof-tile .pn {
+        font-family: Cinzel, serif;
+        font-size: 0.62rem;
+        letter-spacing: 0.1em;
+        color: var(--gold);
+      }
+      .prof-tile .owner {
+        margin-top: 0.22rem;
+      }
+      .prof-tile .owner .who {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.3rem;
+        font-size: 0.78rem;
+      }
+      .prof-tile .owner a {
+        color: var(--ink);
+        text-decoration: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .prof-tile .owner a:hover { color: var(--gold); }
+      .prof-tile .bar {
+        margin-top: 0.16rem;
+        height: 0.22rem;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid var(--border-faint);
+        overflow: hidden;
+      }
+      .prof-tile .bar > i {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, var(--gold-deep), var(--gold));
+      }
+      .prof-tile .open-label {
+        margin-top: 0.22rem;
+        font-size: 0.74rem;
+        color: var(--ink-dim);
+        font-style: italic;
+      }
+      .prof-tile .legacy-note {
+        margin-top: 0.35rem;
+        padding-top: 0.3rem;
+        border-top: 1px solid var(--border-faint);
+        font-size: 0.7rem;
+        color: var(--ink-dim);
+        letter-spacing: 0.02em;
+      }
+      .prof-tile .legacy-note b { color: var(--gold); }
+      .prof-tile .legacy-note .chip {
+        font-family: Cinzel, serif;
+        font-size: 0.48rem;
+        letter-spacing: 0.1em;
+        color: var(--gold);
+        margin-left: 0.2rem;
+      }
+      .award-strip {
+        display: flex;
+        flex-direction: column;
+        gap: 0.28rem;
+      }
+      .award {
+        border: 1px solid var(--border-strong);
+        background: var(--award-wash);
+        padding: 0.3rem 0.45rem 0.35rem;
+      }
+      .award .t {
+        font-family: Cinzel, serif;
+        font-size: 0.6rem;
+        letter-spacing: 0.12em;
+        color: var(--gold);
+        font-weight: 700;
+      }
+      .award .d { font-size: 0.82rem; color: var(--ink); margin-top: 0.08rem; }
+      .award .h {
+        margin-top: 0.14rem;
+        font-family: Cinzel, serif;
+        font-size: 0.44rem;
+        letter-spacing: 0.12em;
+        color: var(--ink-dim);
+      }
+      .lower {
+        display: grid;
+        grid-template-columns: 1fr 1.1fr;
+        gap: 0.35rem;
+      }
+      @media (max-width: 900px) {
+        .lower { grid-template-columns: 1fr; }
+      }
+      .climb-row, .stream-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.3rem;
+        padding: 0.16rem 0;
+        border-bottom: 1px solid var(--border-faint);
+        font-size: 0.82rem;
+      }
+      .climb-row:last-child, .stream-row:last-child { border-bottom: 0; }
+      .climb-row a, .stream-row a {
+        color: inherit;
+        text-decoration: none;
+      }
+      .climb-row a:hover, .stream-row a:hover { color: var(--gold); }
+      .climb-row .gain, .stream-row .when {
+        font-family: Cinzel, serif;
+        color: var(--gold);
+        font-size: 0.62rem;
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+      }
+      .empty {
+        color: var(--ink-dim);
+        font-style: italic;
+        text-align: center;
+        padding: 0.4rem 0.3rem;
+      }
+      .note {
+        margin: 0.25rem 0 0;
+        font-size: 0.72rem;
+        color: var(--ink-dim);
+        font-style: italic;
+      }
+      .live-meta {
+        text-align: right;
+        font-family: Cinzel, serif;
+        font-size: 0.7rem;
+        letter-spacing: 0.1em;
+        color: var(--ink-dim);
+      }
+      .live-meta .nav { justify-content: flex-end; margin-bottom: 0.35rem; }
+      .live-meta strong { color: var(--gold); display: block; margin-top: 0.15rem; }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="chrome">
+        <div class="brand-block">
+          <a class="brand-lockup" href="/" aria-label="Forever LAN home">
+            <img class="brand-logo" src="/public/wow-forever-logo-web.png?v=1" alt="World of Warcraft: Forever" width="720" height="609" />
+            <span class="brand-lan">LAN</span>
+          </a>
+          <p class="sub">Who owns which profession · ranks from the addon</p>
+        </div>
+        <div class="live-meta">
+          <nav class="nav">
+            <a href="/">LIVE</a>
+            <a href="/characters">CHARACTERS</a>
+            <a class="on" href="/professions">PROFESSIONS</a>
+            <a href="/timeline">TIMELINE</a>
+            <a href="/zones">ZONES</a>
+            <a href="/deaths">DEATHS</a>
+            <a href="/wrap">WRAP</a>
+            <a href="/diagnostics" title="Host collection status">DIAG</a>
+          </nav>
+          <strong id="session">…</strong>
+        </div>
+      </header>
+
+      <section class="broadcast" aria-label="Professions headline">
+        <div class="eyebrow" id="title">PROFESSIONS</div>
+        <div class="line" id="headline">Waiting for the first profession skill-up…</div>
+      </section>
+
+      <div class="board">
+        <section class="panel" aria-label="Party professions">
+          <h2>PARTY PROFESSIONS <span class="honesty-chip">LOGGED</span></h2>
+          <div class="coverage" id="coverage">
+            <div class="empty">Profession tiles appear when someone trains a skill.</div>
+          </div>
+          <p class="note">Unrepresented professions — no party member has trained these yet.</p>
+        </section>
+        <section class="panel" aria-label="Profession honors">
+          <h2>PROFESSION HONORS <span class="honesty-chip">COUNTED</span></h2>
+          <div class="award-strip" id="awards">
+            <div class="empty">Honors appear once professions show up.</div>
+          </div>
+        </section>
+      </div>
+
+      <div class="lower">
+        <section class="panel" aria-label="Profession progress">
+          <h2>PROFESSION PROGRESS <span class="honesty-chip">COUNTED</span></h2>
+          <div id="climb"><div class="empty">Skill-ups appear when ranks move.</div></div>
+        </section>
+        <section class="panel" aria-label="Recent skill-ups">
+          <h2>RECENT SKILL-UPS <span class="honesty-chip">COUNTED</span></h2>
+          <div id="stream"><div class="empty">Recent skill-ups land here.</div></div>
+        </section>
+      </div>
+    </div>
+    <script src="/public/faction-theme.js?v=faction1"></script>
+    <script>
+      const esc = (s) =>
+        String(s ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+
+      const honestyChip = (raw) => {
+        const k = String(raw || "").trim().toLowerCase();
+        if (k === "observed") return "LOGGED";
+        if (k === "derived" || k === "mixed") return "COUNTED";
+        if (k === "inferred") return "GUESSED";
+        return String(raw || "").toUpperCase();
+      };
+
+      function clock(iso) {
+        if (!iso) return "";
+        const d = new Date(iso);
+        if (!Number.isFinite(d.getTime())) return "";
+        const opts = {
+          hour12: false,
+          weekday: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+        };
+        if (window.__foreverLanTz) opts.timeZone = window.__foreverLanTz;
+        return d.toLocaleString("en-GB", opts);
+      }
+
+      function charHref(character, guid) {
+        const q = new URLSearchParams({ name: character || "" });
+        if (guid) q.set("guid", guid);
+        return `/characters?${q}`;
+      }
+
+      function streamHref(row) {
+        const q = new URLSearchParams({
+          character: row.character || "ALL",
+          bucket: "PROFESSIONS",
+        });
+        if (row.event_id) q.set("event", row.event_id);
+        return `/timeline?${q}`;
+      }
+
+      function render(lan) {
+        if (lan?.meta?.display_time_zone) window.__foreverLanTz = lan.meta.display_time_zone;
+        const board = lan.professions || {};
+        document.getElementById("session").textContent = lan.session_id || "…";
+        document.getElementById("title").textContent = board.title || "PROFESSIONS";
+        document.getElementById("headline").textContent =
+          board.headline || "Waiting for the first profession skill-up…";
+
+        const coverage = board.coverage || [];
+        const covEl = document.getElementById("coverage");
+        if (!coverage.length) {
+          covEl.innerHTML =
+            '<div class="empty">Profession tiles appear when someone trains a skill.</div>';
+        } else {
+          covEl.innerHTML = coverage
+            .map((c) => {
+              if (c.open_seat) {
+                return `<div class="prof-tile open">
+                  <div class="pn">${esc(c.name)}</div>
+                  <div class="open-label">Unrepresented</div>
+                </div>`;
+              }
+              const owners = (c.owners || [])
+                .map((o) => {
+                  const pct = Math.max(
+                    3,
+                    Math.min(
+                      100,
+                      o.progress_pct ||
+                        (o.max_rank > 0 ? Math.round((100 * o.rank) / o.max_rank) : 0)
+                    )
+                  );
+                  return `<div class="owner">
+                    <div class="who">
+                      <a href="${esc(charHref(o.character, o.guid))}">${esc(o.character)}</a>
+                      <span>${esc(o.rank)}/${esc(o.max_rank || "?")}</span>
+                    </div>
+                    <div class="bar" title="${pct}%"><i style="width:${pct}%"></i></div>
+                  </div>`;
+                })
+                .join("");
+              const legacyLine = (() => {
+                const lm = c.legacy_milestone;
+                if (!lm) return "";
+                if (lm.eligible === false)
+                  return `<div class="legacy-note">Not a Legacy tradeskill challenge</div>`;
+                if (lm.next)
+                  return `<div class="legacy-note">Legacy milestone: <b>${esc(lm.next.threshold)}</b> · ${esc(lm.next.remaining)} to go <span class="chip">TRACKED</span></div>`;
+                if (lm.last_verified)
+                  return `<div class="legacy-note">Legacy: <b>${esc(lm.last_verified)}</b> verified <span class="chip">VERIFIED</span></div>`;
+                return `<div class="legacy-note">Legacy: 150 · 225 · 300 <span class="chip">TRACKED</span></div>`;
+              })();
+              return `<div class="prof-tile">
+                <div class="pn">${esc(c.name)}</div>
+                ${owners}
+                ${legacyLine}
+              </div>`;
+            })
+            .join("");
+        }
+
+        const awards = (board.awards || []).filter((a) => a.title !== "OPEN SEAT");
+        const awEl = document.getElementById("awards");
+        if (!awards.length) {
+          awEl.innerHTML = '<div class="empty">Honors appear once professions show up.</div>';
+        } else {
+          awEl.innerHTML = awards
+            .map(
+              (a) =>
+                `<div class="award"><div class="t">${esc(a.title)}</div><div class="d">${esc(
+                  a.detail || ""
+                )}</div><div class="h">${honestyChip(a.honesty)}</div></div>`
+            )
+            .join("");
+        }
+
+        const climb = (board.climb || []).slice(0, 3);
+        const climbEl = document.getElementById("climb");
+        if (!climb.length) {
+          climbEl.innerHTML = '<div class="empty">Skill-ups appear when ranks move.</div>';
+        } else {
+          climbEl.innerHTML = climb
+            .map((c) => {
+              const href = charHref(c.character, c.guid);
+              return `<div class="climb-row"><a href="${esc(href)}">${esc(c.character)} · ${esc(
+                c.name
+              )} ${esc(c.from)}→${esc(c.to)}</a><span class="gain">+${esc(c.gained)}</span></div>`;
+            })
+            .join("");
+        }
+
+        const stream = (board.stream || board.feed || []).slice(0, 3);
+        const streamEl = document.getElementById("stream");
+        if (!stream.length) {
+          streamEl.innerHTML =
+            '<div class="empty">Crafts and skill-ups land here automatically.</div>';
+        } else {
+          streamEl.innerHTML = stream
+            .map((r) => {
+              const isCraft = !!(r.item_name || r.kind === "craft");
+              const body = isCraft
+                ? `${esc(r.character)} · ${esc(r.text)}`
+                : r.learned
+                  ? `${esc(r.character)} learned ${esc(r.name)} (${esc(r.to)}/${esc(r.max_rank || "?")})`
+                  : `${esc(r.character)} · ${esc(r.name)} ${esc(r.from)}→${esc(r.to)}`;
+              return `<div class="stream-row"><a href="${esc(streamHref(r))}">${body}</a><span class="when">${esc(
+                clock(r.ts)
+              )}</span></div>`;
+            })
+            .join("");
+        }
+      }
+
+      async function refresh() {
+        try {
+          const lan = await (await fetch("/lan")).json();
+          render(lan);
+        } catch {
+          /* host warming */
+        }
+      }
+
+      refresh();
+      try {
+        const es = new EventSource("/stream");
+        es.onmessage = (msg) => {
+          try {
+            const data = JSON.parse(msg.data);
+            if (data.lan) render(data.lan);
+          } catch {
+            /* ignore */
+          }
+        };
+        es.onerror = () => {
+          refresh();
+        };
+      } catch {
+        setInterval(refresh, 8000);
+      }
+    </script>
+  </body>
+</html>

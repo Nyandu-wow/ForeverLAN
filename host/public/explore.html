@@ -1,0 +1,1412 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Forever LAN</title>
+    <script>
+      (function () {
+        try {
+          var f = localStorage.getItem("forever-lan-faction");
+          if (f !== "horde" && f !== "alliance") f = "alliance";
+          document.documentElement.setAttribute("data-faction", f);
+        } catch (e) {
+          document.documentElement.setAttribute("data-faction", "alliance");
+        }
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/public/lan-chrome.css?v=horde2" />
+    <style>
+      :root { --death: #e8b84a; }
+      .card, table { background:var(--panel); border:1px solid var(--border); }
+      .card { padding:.7rem .85rem; text-decoration:none; color:inherit; display:block; }
+      .card:hover { border-color:var(--gold); }
+      .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:.6rem; }
+      .char-board {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+        gap: 0.55rem;
+        margin: 0.35rem 0 1rem;
+      }
+      .char-card {
+        position: relative;
+        min-width: 0;
+        padding: 0.55rem 0.7rem 0.65rem;
+        background: var(--panel);
+        border: 1px solid var(--border-strong);
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+      }
+      .char-card:hover { border-color: var(--gold); }
+      .char-card.lead {
+        border-color: var(--gold);
+        box-shadow: 0 0 0 1px var(--card-ring), 0 10px 28px rgba(0, 0, 0, 0.4);
+      }
+      .char-card.fallen { border-color: var(--death, #e8b84a); }
+      .char-card .place {
+        position: absolute;
+        top: 0.3rem;
+        right: 0.5rem;
+        font-family: Cinzel, serif;
+        font-size: 1.05rem;
+        color: var(--gold-muted);
+      }
+      .char-card .name {
+        font-family: Cinzel, serif;
+        font-weight: 700;
+        font-size: 0.92rem;
+        letter-spacing: 0.04em;
+        line-height: 1.2;
+        padding-right: 1.35rem;
+        overflow-wrap: break-word;
+        color: var(--ink);
+      }
+      .char-card .lvl {
+        font-family: Cinzel, serif;
+        font-size: clamp(1.45rem, 2.6vw, 1.95rem);
+        color: var(--gold);
+        line-height: 1;
+        margin: 0.15rem 0 0.1rem;
+      }
+      .char-card .gained { color: var(--online); font-family: Cinzel, serif; font-size: 0.75rem; letter-spacing: 0.08em; }
+      .char-card .gap, .char-card .zone, .char-card .facts {
+        color: var(--ink-dim);
+        font-size: 0.86rem;
+        line-height: 1.3;
+      }
+      .char-card .zone {
+        margin-top: 0.2rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .char-card .status {
+        margin-top: 0.35rem;
+        font-family: Cinzel, serif;
+        font-size: 0.66rem;
+        letter-spacing: 0.12em;
+        color: var(--offline);
+      }
+      .char-card .status.on { color: var(--online); }
+      .char-card .status.dead { color: var(--death, #e8b84a); }
+      .char-card .pace {
+        margin-top: 0.35rem;
+        font-size: 0.8rem;
+        color: var(--ink-dim);
+        font-style: italic;
+      }
+      .char-card .bar {
+        margin-top: 0.4rem;
+        height: 4px;
+        background: rgba(0, 0, 0, 0.45);
+        border: 1px solid var(--border-faint);
+      }
+      .char-card .bar > span {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, var(--gold-deep), var(--gold));
+      }
+      .honesty-chip {
+        display: inline-block;
+        font-family: Cinzel, serif;
+        font-size: 0.55rem;
+        letter-spacing: 0.14em;
+        color: var(--ink-dim);
+        border: 1px solid var(--border);
+        padding: 0.1rem 0.35rem;
+        margin-left: 0.35rem;
+        vertical-align: middle;
+      }
+      .secondary { margin-top: 1.25rem; }
+      .name { font-family:Cinzel,serif; color:var(--gold); letter-spacing:.06em; }
+      .meta { color:var(--ink-dim); font-size:.92rem; margin-top:.15rem; }
+      table { width:100%; border-collapse:collapse; }
+      th, td { text-align:left; padding:.4rem .65rem; border-bottom:1px solid var(--border-faint); vertical-align:top; }
+      th { font-family:Cinzel,serif; font-size:.65rem; letter-spacing:.1em; color:var(--ink-dim); font-weight:600; }
+      .filters button { font-family:Cinzel,serif; font-size:.65rem; letter-spacing:.08em; background:transparent; color:var(--ink-dim); border:1px solid var(--border); margin:0 .25rem .25rem 0; padding:.28rem .45rem; cursor:pointer; }
+      .filters button.on { color:var(--gold); border-color:var(--gold); }
+      .kpis { display:flex; flex-wrap:wrap; gap:.5rem; }
+      .career {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.75rem;
+        margin: 0.75rem 0 0.25rem;
+        padding: 0.55rem 0;
+        border-top: 1px solid var(--border-mid);
+        border-bottom: 1px solid var(--border-mid);
+      }
+      .career.compact {
+        margin: 0.35rem 0 0;
+        padding: 0.25rem 0 0;
+        border-top: 1px solid var(--border-faint);
+        border-bottom: none;
+        gap: 0.2rem 0.45rem;
+      }
+      .career .m {
+        font-family: var(--story), Georgia, serif;
+        font-size: 0.78rem;
+        color: var(--ink-dim);
+      }
+      .career.compact .m { font-size: 0.72rem; }
+      .career .m b { color: var(--ink); font-weight: 600; }
+      .career .m em {
+        font-style: normal;
+        font-family: Cinzel, serif;
+        font-size: 0.5rem;
+        letter-spacing: 0.08em;
+        color: var(--gold);
+        margin-left: 0.25rem;
+      }
+      .career.compact .m em { display: none; }
+      .legacy-journey {
+        margin: 0.35rem 0 0;
+        padding: 0.35rem 0 0;
+        border-top: 1px solid var(--border-faint);
+        font-family: Cinzel, serif;
+        font-size: 0.62rem;
+        letter-spacing: 0.08em;
+        color: var(--ink-dim);
+      }
+      .legacy-journey .lj-title {
+        color: var(--gold);
+        margin-bottom: 0.2rem;
+      }
+      .legacy-journey .lj-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem 0.55rem;
+        font-family: var(--story), Georgia, serif;
+        font-size: 0.76rem;
+        letter-spacing: 0;
+        text-transform: none;
+      }
+      .legacy-journey .lj-row b { color: var(--ink); }
+      .legacy-journey .ok { color: var(--online); }
+      .legacy-journey .go { color: var(--gold); }
+      .legacy-journey .lock { opacity: 0.45; }
+      .legacy-journey .chip {
+        font-family: Cinzel, serif;
+        font-size: 0.48rem;
+        letter-spacing: 0.1em;
+        color: var(--gold);
+        margin-left: 0.2rem;
+      }
+      .kpi { background:var(--panel); border:1px solid var(--border); padding:.5rem .7rem; min-width:100px; }
+      .kpi b { display:block; font-family:Cinzel,serif; color:var(--gold); font-size:1.15rem; }
+      .note { color:var(--ink-dim); font-style:italic; font-size:.9rem; }
+      select { background:var(--input-bg); color:var(--ink); border:1px solid var(--border-strong); padding:.3rem; font-family:inherit; }
+      a.death-link { color:var(--gold); text-decoration:none; }
+      a.death-link:hover { text-decoration:underline; }
+      .zm-toolbar {
+        display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.6rem; margin:.35rem 0 .55rem;
+      }
+      .zm-views { display:flex; gap:.3rem; flex-wrap:wrap; }
+      .zm-view {
+        font-family:Cinzel,serif; font-size:.62rem; letter-spacing:.1em; text-transform:uppercase;
+        background:rgba(0,0,0,.35); color:var(--ink-dim); border:1px solid var(--border); padding:.3rem .65rem; cursor:pointer;
+      }
+      .zm-view:hover { color:var(--ink); border-color:var(--border-strong); }
+      .zm-view.on { color:var(--ink-on-gold); background:var(--gold); border-color:var(--gold); }
+      .zm-legend {
+        display:flex; align-items:center; gap:.45rem; flex-wrap:wrap;
+        font-family:Cinzel,serif; font-size:.56rem; letter-spacing:.08em; color:var(--ink-dim); text-transform:uppercase;
+      }
+      .zm-sw { display:inline-block; width:1.1rem; height:.7rem; border:1px solid var(--border); }
+      .zm-sw.fog { background:rgba(16,11,6,.7); }
+      .zm-ramp { display:inline-block; width:7rem; height:.7rem; border:1px solid var(--border); }
+      .zm-ticks { display:inline-flex; justify-content:space-between; width:7rem; margin-left:-7.45rem; transform:translateY(1.05rem); font-size:.5rem; }
+      .zm-chip {
+        display:inline-block; margin-left:.4rem; padding:.05rem .35rem; vertical-align:middle;
+        font-family:Cinzel,serif; font-size:.5rem; letter-spacing:.12em; color:var(--gold);
+        border:1px solid var(--border-strong); background:color-mix(in srgb, var(--gold) 10%, transparent);
+      }
+      .zm-wrap {
+        position:relative; width:100%; aspect-ratio:1002 / 668; margin:.2rem 0 .7rem;
+        border:1px solid var(--gold-deep); background:var(--zm-stage); overflow:hidden;
+        box-shadow: inset 0 0 0 1px var(--card-ring), 0 14px 36px rgba(0,0,0,.5);
+      }
+      .zm-map, .zm-svg { display:block; width:100%; height:100%; }
+      .zm-zone { cursor:pointer; transition:fill .4s ease, filter .15s ease; }
+      .zm-zone:hover { filter:brightness(1.25) saturate(1.1); }
+      .zm-border {
+        fill:none; stroke:rgba(30,18,6,.85); stroke-width:1.1; stroke-linejoin:round;
+        vector-effect:non-scaling-stroke; pointer-events:none;
+      }
+      .zm-selected {
+        fill:none; stroke:var(--zm-select); stroke-width:2.6; stroke-linejoin:round;
+        vector-effect:non-scaling-stroke; pointer-events:none; filter:drop-shadow(0 0 4px color-mix(in srgb, var(--gold) 70%, transparent));
+      }
+      .zm-tip {
+        position:absolute; z-index:5; pointer-events:none; max-width:16rem;
+        background:var(--panel-solid); border:1px solid var(--border-strong); padding:.45rem .6rem;
+        font-size:.85rem; line-height:1.35; color:var(--ink); box-shadow:0 6px 18px rgba(0,0,0,.55);
+      }
+      .zm-tip b { font-family:Cinzel,serif; letter-spacing:.05em; color:var(--gold); }
+      .zm-tip .zm-lv, .zm-tip-parts { color:var(--ink-dim); font-size:.78rem; }
+      .zm-tip-who { color:var(--zm-tip-who); font-style:italic; }
+      .zm-card { background:var(--panel); border:1px solid var(--border); padding:.6rem .8rem; margin:.2rem 0 .8rem; }
+      .zm-card h3 { margin:0 0 .25rem; font-family:Cinzel,serif; color:var(--gold); font-size:1rem; letter-spacing:.06em; }
+      .zm-who { margin:.35rem 0; padding-left:1.1rem; }
+      .zm-gold { color:var(--gold); font-style:normal; }
+      .zm-rank { cursor:pointer; }
+      .zm-rank:hover .zn { color:var(--gold); }
+      .zm-off-h { font-family:Cinzel,serif; font-size:.6rem; letter-spacing:.12em; color:var(--ink-dim); margin-right:.4rem; }
+      .zm-off {
+        display:inline-block; margin:.15rem .35rem .15rem 0; padding:.15rem .45rem; font-size:.85rem;
+        border:1px dashed var(--border); color:var(--ink-dim);
+      }
+      .zm-off i { font-style:normal; font-size:.75rem; opacity:.8; }
+      .off-map { margin: 0.35rem 0 0.8rem; }
+      .map-credit {
+        margin: -0.35rem 0 0.85rem;
+        font-size: 0.78rem;
+        color: var(--ink-dim);
+        font-style: italic;
+      }
+      .loot-link { text-decoration: none; }
+      .loot-link.rare { color: #5b8fd9; }
+      .loot-link.epic { color: #a335ee; }
+      .loot-link:hover { text-decoration: underline; }
+      .heat-rank { margin-top:1.1rem; }
+      .heat-row {
+        display:grid; grid-template-columns:minmax(7rem,11rem) 1fr auto; gap:.55rem; align-items:center;
+        padding:.35rem 0; border-bottom:1px solid var(--border-faint);
+      }
+      .heat-row .zn { font-family:Cinzel,serif; font-size:.68rem; letter-spacing:.06em; color:var(--ink); }
+      .heat-row .track { height:10px; background:rgba(0,0,0,.35); border:1px solid var(--border-faint); overflow:hidden; }
+      .heat-row .fill {
+        height:100%;
+        background:var(--heat-fill);
+      }
+      .heat-row .nums { color:var(--ink-dim); font-size:.85rem; white-space:nowrap; }
+      .tl-when { white-space:nowrap; color:var(--ink-dim); font-variant-numeric:tabular-nums; }
+      .tl tr.tl-day td {
+        font-family:Cinzel,serif; font-size:.68rem; letter-spacing:.16em; text-transform:uppercase;
+        color:var(--gold); background:color-mix(in srgb, var(--gold) 10%, transparent); padding-top:.55rem;
+      }
+      .tl-ding { color:var(--online); }
+      .tl-death { color:var(--death, #e8b84a); }
+      .tl-loot { color:#8eb6ef; }
+      .tl-epic { color:#c45dff; }
+      td i { color:var(--ink-dim); }
+      .gy { display:grid; grid-template-columns:1.3fr 1fr 1fr; gap:.6rem; margin:.5rem 0 1rem; }
+      @media (max-width: 860px) { .gy { grid-template-columns:1fr; } }
+      .gy-col { background:var(--panel); border:1px solid var(--border); padding:.6rem .75rem; }
+      .gy-col h3 { margin:0 0 .45rem; font-family:Cinzel,serif; font-size:.68rem; letter-spacing:.16em; color:var(--gold); font-weight:600; }
+      .gy-row {
+        display:grid; grid-template-columns:minmax(0,1fr) auto; gap:.55rem; align-items:center;
+        padding:.28rem 0; border-bottom:1px solid var(--border-faint); color:inherit; text-decoration:none;
+      }
+      a.gy-row { grid-template-columns:minmax(8rem,11rem) 1fr auto; }
+      a.gy-row:hover .gy-name, a.gy-row.on .gy-name { color:var(--gold); }
+      .gy-row:last-of-type { border-bottom:0; }
+      .gy-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .gy-row b { font-family:Cinzel,serif; color:var(--death, #e8b84a); font-size:1.05rem; }
+      .gy-track { height:8px; background:rgba(0,0,0,.35); border:1px solid var(--border-faint); }
+      .gy-track > span { display:block; height:100%; background:linear-gradient(90deg, var(--gold-deep), var(--death, #e8b84a)); }
+      .deaths-table td.story { color:var(--ink-dim); font-size:.88rem; }
+      .deaths-table td:nth-child(2) { white-space:nowrap; }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="chrome">
+        <div class="brand-block">
+          <a class="brand-lockup" href="/" aria-label="Forever LAN home">
+            <img class="brand-logo" src="/public/wow-forever-logo-web.png?v=1" alt="World of Warcraft: Forever" width="720" height="609" />
+            <span class="brand-lan">LAN</span>
+          </a>
+          <p class="note" id="sub">What Forever logged · counts labeled as such</p>
+        </div>
+        <nav class="nav" id="nav"></nav>
+      </header>
+      <div id="app" class="page"><p class="note">Reading the weekend log…</p></div>
+    </div>
+    <script src="/public/faction-theme.js?v=faction1"></script>
+    <script src="/public/zone-art.js?v=z3"></script>
+    <script src="/public/loot-links.js?v=l1"></script>
+    <script src="/public/zone-map.js?v=zm3"></script>
+    <script>
+      const VIEWS = [
+        ["/", "LIVE"],
+        ["/characters", "CHARACTERS"],
+        ["/professions", "PROFESSIONS"],
+        ["/timeline", "TIMELINE"],
+        ["/zones", "ZONES"],
+        ["/deaths", "DEATHS"],
+        ["/wrap", "WRAP"],
+        ["/diagnostics", "DIAG"],
+      ];
+      const path = location.pathname;
+      document.getElementById("nav").innerHTML = VIEWS.map(
+        ([href, label]) => `<a class="${path === href ? "on" : ""}" href="${href}">${label}</a>`
+      ).join("");
+
+      const esc = (s) => String(s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
+      const honestyChip = (raw) => {
+        const k = String(raw || "").trim().toLowerCase();
+        if (k === "observed") return "LOGGED";
+        if (k === "derived") return "COUNTED";
+        if (k === "inferred") return "GUESSED";
+        return String(raw || "").toUpperCase();
+      };
+      const eventTypeLabel = (type, row) => {
+        if (row?.label) return row.label;
+        const t = String(type || "");
+        const map = {
+          LOGIN: "Logged in",
+          LOGOUT: "Logged out",
+          WORLD_ENTER: "Entered world",
+          PLAYER_PLAYING: "Now playing",
+          PLAYER_ONLINE: "Came online",
+          PLAYER_OFFLINE: "Went offline",
+          PLAYER_DETECTED: "Seen in party",
+          PLAYER_LEVEL_CHANGED: "Ding",
+          PLAYER_DIED: "Died",
+          PLAYER_RESURRECTED: "Resurrected",
+          PLAYER_ZONE_CHANGED: "Changed zone",
+          PLAYER_ENTERED_INSTANCE: "Entered instance",
+          PLAYER_LEFT_INSTANCE: "Left instance",
+          PLAYER_PROFESSIONS: "Professions update",
+          PLAYER_QUESTS: "Quest progress",
+          PLAYER_FOOD_BUFF: "Food buff",
+          PLAYER_DISTANCE: "Distance traveled",
+          PLAYER_POWER_STATS: "Power stats",
+          PLAYER_MONEY: "Gold update",
+          PLAYER_MAP_OPENED: "Opened map",
+          PLAYER_COMBAT_TIME: "Combat time",
+          PLAYER_LOOT_RARE: "Rare loot",
+          PLAYER_LOOT_EPIC: "Epic loot",
+          PLAYER_PVP_KILL: "PvP kill",
+          PLAYER_REPAIR_SPEND: "Repair spend",
+          PARTY_ROSTER: "Party roster updated",
+          PARTY_KILL: "Kill (combat log)",
+          COMBAT_ZONE: "Combat-log zone",
+          COMBAT_LOG_VERSION: "Combat log started",
+          COMBAT_PLAYER_DEATH: "Death (combat log)",
+        };
+        return map[t] || t || "Event";
+      };
+      const clock = (iso) => {
+        if (!iso) return "";
+        const d = new Date(iso);
+        if (!Number.isFinite(d.getTime())) return "";
+        const tz = window.__foreverLanTz;
+        const opts = { hour12: false, weekday: "short", hour: "2-digit", minute: "2-digit", second: "2-digit" };
+        if (tz) opts.timeZone = tz;
+        return d.toLocaleString("en-GB", opts);
+      };
+
+      const app = document.getElementById("app");
+      const params = new URLSearchParams(location.search);
+
+      async function load() {
+        const catalog = await (await fetch("/api/v1/catalog")).json();
+        if (catalog.display_time_zone) window.__foreverLanTz = catalog.display_time_zone;
+        if (path === "/zones") return renderZones(catalog);
+        if (path === "/characters" || path === "/race" || path === "/milestones") {
+          if (path === "/characters" || params.get("name")) renderCharacters(catalog);
+          else if (path === "/milestones") renderMilestones(catalog);
+          else renderRace();
+        } else if (path === "/timeline") renderTimeline(catalog);
+        else if (path === "/deaths") renderDeaths(catalog);
+        else renderCharacters(catalog);
+      }
+
+      function gold(copper) {
+        if (copper == null || !Number.isFinite(Number(copper))) return "—";
+        const n = Math.max(0, Math.round(Number(copper)));
+        const g = Math.floor(n / 10000);
+        const s = Math.floor((n % 10000) / 100);
+        const r = n % 100;
+        if (g) return `${g}g ${s}s`;
+        if (s) return `${s}s ${r}c`;
+        return `${r}c`;
+      }
+      function fmtDistance(yards) {
+        if (yards == null || !Number.isFinite(Number(yards)) || Number(yards) <= 0) return "—";
+        const m = Number(yards) * 0.9144;
+        if (m < 1000) return `${Math.round(m)} m`;
+        return `${(m / 1000).toFixed(2)} km`;
+      }
+      function spanLabel(sec) {
+        if (sec == null || !Number.isFinite(Number(sec)) || Number(sec) <= 0) return "—";
+        const s = Math.round(Number(sec));
+        if (s < 60) return `${s}s`;
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        if (h) return m ? `${h}h ${m}m` : `${h}h`;
+        return `${m}m`;
+      }
+      function findChar(list, name) {
+        if (!name) return null;
+        return list.find((x) => x.character === name) || null;
+      }
+
+      function liveKey(p) {
+        if (p?.guid) return `guid:${p.guid}`;
+        const full = String(p?.character || "").trim();
+        return full ? `name:${full}` : "";
+      }
+
+      let catalogCache = null;
+      let detailCache = null;
+      let charactersLiveStarted = false;
+      let charactersRefreshBusy = false;
+
+      function liveByKeyFromLan(lan) {
+        const map = new Map();
+        if (lan?.meta?.display_time_zone) window.__foreverLanTz = lan.meta.display_time_zone;
+        for (const p of lan?.players || []) {
+          const key = liveKey(p);
+          if (key) map.set(key, p);
+        }
+        return map;
+      }
+
+      function mergeLivePlayer(p, liveByKey) {
+        const live = liveByKey.get(liveKey(p));
+        if (!live) return p;
+        return {
+          ...p,
+          level: live.level ?? p.level,
+          levels_gained: live.levels_gained ?? p.levels_gained,
+          deaths: live.deaths ?? p.deaths,
+          distance_yards: live.distance_yards ?? p.distance_yards,
+          distance_m: live.distance_m ?? p.distance_m,
+          jumps: live.jumps ?? p.jumps,
+          zone: live.zone ?? p.zone,
+          online: live.online,
+          dead: live.dead,
+          gap_to_leader: live.gap_to_leader,
+          in_instance: live.in_instance,
+          instance_name: live.instance_name,
+          in_party: live.in_party,
+          last_death_summary: live.last_death_summary ?? p.last_death_summary,
+          corpse_run_started_at: live.corpse_run_started_at,
+          career: Array.isArray(live.career) && live.career.length ? live.career : p.career,
+          legacy: live.legacy || p.legacy || null,
+          client_status: live.client_status || p.client_status,
+        };
+      }
+
+      function legacyJourneyHtml(legacy, { compact = true } = {}) {
+        if (!legacy?.levels?.length) return "";
+        const rows = legacy.levels
+          .map((m) => {
+            if (m.status === "verified")
+              return `<span class="ok"><b>Level ${esc(m.threshold)}</b> ✓</span>`;
+            if (m.status === "in_progress")
+              return `<span class="go"><b>Level ${esc(m.threshold)}</b> → ${esc(m.remaining)}</span>`;
+            return `<span class="lock"><b>Level ${esc(m.threshold)}</b> ○</span>`;
+          })
+          .join("");
+        const profBits = (legacy.professions || [])
+          .slice(0, compact ? 2 : 6)
+          .map((pr) => {
+            const next = (pr.milestones || []).find((x) => x.status === "in_progress");
+            const done = (pr.milestones || []).filter((x) => x.status === "verified").length;
+            if (next)
+              return `<span class="go"><b>${esc(pr.name)}</b> ${esc(pr.rank)} · ${esc(next.threshold)} (${esc(next.remaining)} to go)</span>`;
+            if (done)
+              return `<span class="ok"><b>${esc(pr.name)}</b> ${done}/3 ✓</span>`;
+            return "";
+          })
+          .filter(Boolean)
+          .join("");
+        return `<div class="legacy-journey" title="Verified = Forever LAN observed this threshold. Untracked ≠ incomplete.">
+          <div class="lj-title">LEGACY MILESTONE <span class="chip">TRACKED</span></div>
+          <div class="lj-row">${rows}</div>
+          ${profBits ? `<div class="lj-row" style="margin-top:0.2rem">${profBits}</div>` : ""}
+        </div>`;
+      }
+
+      function careerStripHtml(career, { compact = false } = {}) {
+        if (!Array.isArray(career) || !career.length) return "";
+        const rows = compact ? career.slice(0, 5) : career.slice(0, 8);
+        const body = rows
+          .map((m) => {
+            const honesty =
+              m.honesty === "derived" ? "COUNTED" : m.honesty === "inferred" ? "GUESSED" : "LOGGED";
+            return `<div class="m"><b>${esc(m.label)}</b>${
+              m.ts && !compact ? ` · ${esc(clock(m.ts))}` : ""
+            }<em>${esc(honesty)}</em></div>`;
+          })
+          .join("");
+        if (compact) return `<div class="career compact">${body}</div>`;
+        return `<div id="charCareer"><h2>CAREER SO FAR <span class="honesty-chip">MIXED</span></h2><div class="career">${body}</div><p class="note">Compact milestones from this weekend's log — not a full timeline.</p></div>`;
+      }
+
+      function charBoardHtml(chars, levelCap = 60) {
+        const leadLvl = chars.find((p) => p.level != null)?.level;
+        const cap = Math.max(1, Math.min(60, Number(levelCap) || 60));
+        return chars
+          .map((p, i) => {
+            const gained = p.levels_gained ?? p.dings ?? 0;
+            const pace = p.levels_per_hour != null ? `${p.levels_per_hour}/h` : null;
+            const pct =
+              p.level != null ? Math.min(100, Math.round((p.level / cap) * 100)) : 0;
+            const lvl =
+              p.level != null
+                ? `${esc(p.level)}<span style="font-size:0.55em;opacity:0.7">/${cap}</span>`
+                : "—";
+            let gap = "";
+            if (p.level != null && i === 0) {
+              const left = Math.max(0, cap - p.level);
+              gap = left > 0 ? `${left} to ${cap}` : `HIT ${cap}`;
+            } else if (p.gap_to_leader != null && p.gap_to_leader > 0) {
+              gap = `${p.gap_to_leader} behind`;
+            } else if (p.level != null && p.level === leadLvl) {
+              gap = "Tied";
+            }
+            const placeName =
+              p.in_instance && p.instance_name ? p.instance_name : p.zone || "";
+            const statusCls = p.dead ? "dead" : p.online ? "on" : "";
+            const statusBits = [];
+            const reporting = ["REPORTING", "CATCHING_UP"].includes(p.client_status?.status);
+            if (p.dead) statusBits.push(reporting ? "Fallen" : "Fallen · no signal");
+            else if (p.online === true) statusBits.push("Online");
+            else if (p.online === false) statusBits.push("Offline");
+            if (p.in_party) statusBits.push("Party");
+            const facts = [];
+            if ((p.deaths || 0) > 0) facts.push(`${p.deaths} deaths`);
+            if (p.zones != null) facts.push(`${p.zones} zones`);
+            if (p.copper != null) facts.push(gold(p.copper));
+            return `<a class="char-card${i === 0 ? " lead" : ""}${p.dead ? " fallen" : ""}" href="/characters?name=${encodeURIComponent(p.character)}${p.guid ? `&guid=${encodeURIComponent(p.guid)}` : ""}">
+              <div class="place">${i + 1}</div>
+              <div class="name">${esc(p.character)}</div>
+              <div class="lvl">${lvl}</div>
+              ${gained > 0 ? `<div class="gained">+${esc(gained)} this weekend</div>` : ""}
+              ${gap ? `<div class="gap">${esc(gap)}</div>` : ""}
+              ${placeName ? `<div class="zone" title="${esc(placeName)}">${esc(placeName)}</div>` : ""}
+              ${statusBits.length ? `<div class="status ${statusCls}">${esc(statusBits.join(" · "))}</div>` : ""}
+              ${facts.length ? `<div class="facts">${esc(facts.join(" · "))}</div>` : ""}
+              ${pace ? `<div class="pace">pace ${esc(pace)} <span style="opacity:.7">(counted)</span></div>` : ""}
+              ${careerStripHtml(p.career, { compact: true })}
+              ${legacyJourneyHtml(p.legacy, { compact: true })}
+              <div class="bar"><span style="width:${pct}%"></span></div>
+            </a>`;
+          })
+          .join("");
+      }
+
+      async function fetchLan() {
+        try {
+          return await (await fetch("/lan")).json();
+        } catch {
+          return null;
+        }
+      }
+
+      function sortedMergedChars(c, liveByKey) {
+        return c.characters
+          .map((p) => mergeLivePlayer(p, liveByKey))
+          .slice()
+          .sort(
+            (x, y) =>
+              (y.level || 0) - (x.level || 0) ||
+              String(x.character).localeCompare(String(y.character))
+          );
+      }
+
+      function bindCompareHandlers() {
+        const syncCompare = () => {
+          const left = document.getElementById("cmpA")?.value || "";
+          const right = document.getElementById("cmpB")?.value || "";
+          if (!left && !right) {
+            location.href = "/characters";
+            return;
+          }
+          if (!left || !right) {
+            const q = new URLSearchParams();
+            if (left) q.set("a", left);
+            if (right) q.set("b", right);
+            location.search = q.toString();
+            return;
+          }
+          location.search = `?a=${encodeURIComponent(left)}&b=${encodeURIComponent(right)}`;
+        };
+        document.getElementById("cmpA")?.addEventListener("change", syncCompare);
+        document.getElementById("cmpB")?.addEventListener("change", syncCompare);
+        document.getElementById("cmpClear")?.addEventListener("click", () => {
+          location.href = "/characters";
+        });
+      }
+
+      async function paintCharactersList(c, lan) {
+        delete app.dataset.charDetail;
+        const liveByKey = liveByKeyFromLan(lan || (await fetchLan()) || {});
+        const mergeLive = (p) => mergeLivePlayer(p, liveByKey);
+        const names = c.characters.map((p) => p.character);
+        const aParam = params.get("a");
+        const bParam = params.get("b");
+        const comparing = Boolean(aParam && bParam);
+        const a = comparing ? mergeLive(findChar(c.characters, aParam) || {}) : null;
+        const b = comparing ? mergeLive(findChar(c.characters, bParam) || {}) : null;
+        const canTable = a && b && a.character && b.character && a.character !== b.character;
+        const rows = canTable
+          ? [
+              ["Level", a.level ?? "—", b.level ?? "—"],
+              ["Levels gained", a.levels_gained ?? "—", b.levels_gained ?? "—"],
+              ["Deaths", a.deaths, b.deaths],
+              ["Zones", a.zones, b.zones],
+              ["Quests", a.quests_completed ?? "—", b.quests_completed ?? "—"],
+              ["Gold", gold(a.copper), gold(b.copper)],
+              ["Distance", fmtDistance(a.distance_yards), fmtDistance(b.distance_yards)],
+              ["Jumps", a.jumps ?? "—", b.jumps ?? "—"],
+              ["Levels/hour (counted)", a.levels_per_hour ?? "—", b.levels_per_hour ?? "—"],
+              ["Deaths/hour (counted)", a.deaths_per_hour ?? "—", b.deaths_per_hour ?? "—"],
+              ["Weekend span (counted)", spanLabel(a.observed_span_seconds), spanLabel(b.observed_span_seconds)],
+            ]
+          : [];
+        const opt = (selected) =>
+          `<option value="">—</option>` +
+          names
+            .map(
+              (n) =>
+                `<option value="${esc(n)}" ${selected && n === selected ? "selected" : ""}>${esc(n)}</option>`
+            )
+            .join("");
+        const chars = sortedMergedChars(c, liveByKey);
+        const levelCap = Math.max(1, Math.min(60, Number(lan?.meta?.level_cap) || 60));
+        const board = document.getElementById("charBoard");
+        if (board) {
+          board.innerHTML = charBoardHtml(chars, levelCap);
+          return;
+        }
+        app.innerHTML = `<h2>CHARACTERS <span class="honesty-chip">LOGGED</span></h2>
+          <p class="note">Race board for the weekend roster · live with the board. Open a card for pace, sessions, and deaths.</p>
+          <div class="char-board" id="charBoard">${charBoardHtml(chars, levelCap)}</div>
+          <div class="secondary" id="charSecondary">
+          <h2>COMPARE <span class="honesty-chip">OPTIONAL</span></h2>
+          <p style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center">
+            <select id="cmpA">${opt(a?.character || aParam || "")}</select>
+            <select id="cmpB">${opt(b?.character || bParam || "")}</select>
+            <button type="button" id="cmpClear" class="filters" style="display:inline;padding:0;border:none;background:none">
+              <span style="font-family:Cinzel,serif;font-size:.65rem;letter-spacing:.08em;color:var(--ink-dim);border:1px solid var(--border);padding:.28rem .45rem;cursor:pointer">CLEAR</span>
+            </button>
+          </p>
+          ${
+            canTable
+              ? `<table><tr><th></th><th>${esc(a.character)}</th><th>${esc(b.character)}</th></tr>
+            ${rows.map((r) => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join("")}
+          </table><p class="note">Side by side facts. Levels/hour is counted from the weekend span, not a ranking.</p>`
+              : comparing
+                ? `<p class="note">Pick two different characters to compare, or Clear.</p>`
+                : `<p class="note">Pick two characters when you want a side-by-side. Leave blank to skip.</p>`
+          }
+          <h2>HOT ZONES <span class="honesty-chip">LOGGED</span> <a href="/zones" style="color:var(--gold);font-size:0.7rem;letter-spacing:0.08em;margin-left:0.5rem">FULL →</a></h2>
+          <table><tr><th>Zone</th><th>Chars</th><th>Dings</th><th>Deaths</th></tr>
+          ${(c.zones || [])
+            .slice(0, 5)
+            .map(
+              (z) =>
+                `<tr><td>${esc(z.zone)}</td><td>${z.characters}</td><td>${z.dings}</td><td>${z.deaths}</td></tr>`
+            )
+            .join("")}
+          </table>
+          <h2>MILESTONES <span class="honesty-chip">COUNTED</span></h2>
+          <div class="grid">${(c.insights || [])
+            .slice(0, 4)
+            .map(
+              (i) =>
+                `<div class="card"><div class="name">${esc(i.title)}</div><div class="meta">${esc(i.detail)}</div></div>`
+            )
+            .join("")}</div>
+          <p class="note">${c.event_count} raw events · roster ${(c.roster || []).join(", ")}</p>
+          </div>`;
+        bindCompareHandlers();
+      }
+
+      async function renderCharacters(c) {
+        catalogCache = c;
+        const focus = params.get("name");
+        if (focus) await renderOne(c, focus);
+        else await paintCharactersList(c);
+        startCharactersLive();
+      }
+
+      function startCharactersLive() {
+        if (charactersLiveStarted || path !== "/characters") return;
+        charactersLiveStarted = true;
+        const refresh = async (lanFromStream) => {
+          if (charactersRefreshBusy || !catalogCache) return;
+          charactersRefreshBusy = true;
+          try {
+            const lan = lanFromStream || (await fetchLan());
+            if (!lan) return;
+            const focus = params.get("name");
+            if (focus) await renderOne(catalogCache, focus, lan);
+            else await paintCharactersList(catalogCache, lan);
+          } finally {
+            charactersRefreshBusy = false;
+          }
+        };
+        const es = new EventSource("/stream");
+        es.onmessage = (msg) => {
+          try {
+            const data = JSON.parse(msg.data);
+            if (data.lan) refresh(data.lan);
+          } catch {
+            /* ignore */
+          }
+        };
+        es.onerror = () => {
+          refresh();
+        };
+      }
+
+      function powerBits(p) {
+        const cls = String(p.class || "").toUpperCase();
+        const bits = [];
+        const sp = p.spell_power != null && Number(p.spell_power) > 0 ? p.spell_power : null;
+        const heal = p.spell_healing != null && Number(p.spell_healing) > 0 ? p.spell_healing : null;
+        const ap = p.attack_power != null && Number(p.attack_power) > 0 ? p.attack_power : null;
+        const rap =
+          p.ranged_attack_power != null && Number(p.ranged_attack_power) > 0
+            ? p.ranged_attack_power
+            : null;
+        const melee = cls === "WARRIOR" || cls === "ROGUE";
+        const hunter = cls === "HUNTER";
+        const caster = ["MAGE", "WARLOCK", "PRIEST", "PALADIN", "SHAMAN", "DRUID"].includes(cls);
+        const healer = ["PRIEST", "PALADIN", "SHAMAN", "DRUID"].includes(cls);
+        if (caster || (!melee && !hunter && sp != null && (ap == null || Number(sp) >= Number(ap)))) {
+          if (sp != null) bits.push(`<div class="kpi"><b>${esc(sp)}</b>spell power</div>`);
+          if (healer && heal != null) bits.push(`<div class="kpi"><b>${esc(heal)}</b>spell healing</div>`);
+          return bits;
+        }
+        if (hunter) {
+          const shown = rap ?? ap;
+          if (shown != null) bits.push(`<div class="kpi"><b>${esc(shown)}</b>ranged attack power</div>`);
+          return bits;
+        }
+        // Warrior / rogue / unknown physical: melee AP only — never RAP.
+        if (ap != null) bits.push(`<div class="kpi"><b>${esc(ap)}</b>attack power</div>`);
+        return bits;
+      }
+
+      function activityBlock(p) {
+        const profs = (p.professions || [])
+          .map((x) => `${esc(x.name)} ${esc(x.rank ?? "")}${x.max_rank ? "/" + esc(x.max_rank) : ""}`)
+          .join(" · ");
+        const bits = [];
+        if (profs) bits.push(`<div class="kpi"><b style="font-size:0.95rem">${profs}</b>professions</div>`);
+        const distYards = p.distance_yards ?? (p.distance_m != null ? p.distance_m / 0.9144 : null);
+        if (distYards) {
+          bits.push(`<div class="kpi"><b>${esc(fmtDistance(distYards))}</b>traveled</div>`);
+        }
+        if (p.jumps) bits.push(`<div class="kpi"><b>${esc(p.jumps)}</b>jumps</div>`);
+        if (p.combat_seconds) {
+          bits.push(`<div class="kpi"><b>${esc(spanLabel(p.combat_seconds))}</b>in combat</div>`);
+        }
+        if (p.loot_epic || p.loot_rare) {
+          const loot = [];
+          if (p.loot_epic) loot.push(`${p.loot_epic} epic`);
+          if (p.loot_rare) loot.push(`${p.loot_rare} blue`);
+          bits.push(`<div class="kpi"><b>${esc(loot.join(" · "))}</b>loot</div>`);
+        }
+        if (p.repair_copper) {
+          bits.push(`<div class="kpi"><b>${esc(p.repair_text || gold(p.repair_copper))}</b>repairs</div>`);
+        }
+        if (Array.isArray(p.recent_loots) && p.recent_loots.length && window.ForeverLanLoot) {
+          const links = p.recent_loots
+            .slice(0, 4)
+            .map((it) => ForeverLanLoot.lootLinkHtml(it))
+            .join(" · ");
+          bits.push(`<div class="kpi" style="min-width:12rem"><b style="font-size:0.85rem">${links}</b>recent loot</div>`);
+        }
+        bits.push(...powerBits(p));
+        const maps = (p.world_map_opens || 0) + (p.minimap_opens || 0);
+        if (maps) bits.push(`<div class="kpi"><b>${maps}</b>map opens</div>`);
+        if (p.last_death_summary) {
+          bits.push(`<div class="kpi"><b style="font-size:0.85rem">${esc(p.last_death_summary)}</b>last death</div>`);
+        }
+        if (!bits.length) return "";
+        return `<h2>ACTIVITY <span class="honesty-chip">LOGGED</span></h2><div class="kpis">${bits.join("")}</div><p class="note">Latest values the addon actually sent. Blank means we never got it. Distance is metric (from WoW yards). Power is class-aware (casters → spell power; healers → + spell healing; warriors/rogues → attack power; hunters → ranged AP). Death recap is combat-log color when available.</p>`;
+      }
+
+      async function renderOne(c, name, lanOptional) {
+        const focusGuid = params.get("guid") || "";
+        const cacheKey = `${name}|${focusGuid}`;
+        if (!detailCache || detailCache.key !== cacheKey) {
+          let detail = null;
+          try {
+            const q = new URLSearchParams({ name });
+            if (focusGuid) q.set("guid", focusGuid);
+            detail = await (await fetch(`/api/v1/character?${q}`)).json();
+          } catch {
+            /* use catalog fallback */
+          }
+          detailCache = { key: cacheKey, detail };
+        }
+        const detail = detailCache.detail;
+        let live = null;
+        const lan = lanOptional || (await fetchLan());
+        if (lan) {
+          if (lan?.meta?.display_time_zone) window.__foreverLanTz = lan.meta.display_time_zone;
+          live = (lan.players || []).find((x) => {
+            if (focusGuid && x.guid) return x.guid === focusGuid;
+            return x.character === name;
+          });
+        }
+        const p =
+          detail?.character ||
+          c.characters.find((x) => {
+            if (focusGuid && x.guid) return x.guid === focusGuid;
+            return x.character === name;
+          });
+        if (!p || p.error) {
+          app.innerHTML = `<p>No observations for ${esc(name)}.</p>`;
+          return;
+        }
+        // Prefer live board for activity that streams continuously.
+        const activity = {
+          ...p,
+          distance_yards: live?.distance_yards ?? p.distance_yards,
+          distance_m: live?.distance_m ?? p.distance_m,
+          jumps: live?.jumps ?? p.jumps,
+          combat_seconds: live?.combat_seconds ?? p.combat_seconds,
+          loot_rare: live?.loot_rare ?? p.loot_rare,
+          loot_epic: live?.loot_epic ?? p.loot_epic,
+          repair_copper: live?.repair_copper ?? p.repair_copper,
+          repair_text: live?.repair_text ?? p.repair_text,
+          recent_loots: live?.recent_loots?.length ? live.recent_loots : p.recent_loots,
+          last_death_summary: live?.last_death_summary ?? p.last_death_summary,
+          professions: live?.professions?.length ? live.professions : p.professions,
+          attack_power: live?.attack_power ?? p.attack_power,
+          ranged_attack_power: live?.ranged_attack_power ?? p.ranged_attack_power,
+          spell_power: live?.spell_power ?? p.spell_power,
+          spell_healing: live?.spell_healing ?? p.spell_healing,
+          world_map_opens: live?.world_map_opens ?? p.world_map_opens,
+          minimap_opens: live?.minimap_opens ?? p.minimap_opens,
+        };
+        const liveBits = [];
+        if (live?.zone) liveBits.push(`in ${live.zone}`);
+        if (live?.online === false) liveBits.push("offline");
+        else if (live?.online) liveBits.push("online");
+        if (live?.dead) liveBits.push("fallen");
+
+        // Live refresh: patch strips without rebuilding sessions/deaths (keeps scroll).
+        if (app.dataset.charDetail === cacheKey && document.getElementById("charLiveKpis")) {
+          const nowEl = document.getElementById("charLiveNow");
+          if (nowEl) {
+            if (liveBits.length) {
+              nowEl.hidden = false;
+              nowEl.textContent = `Now: ${liveBits.join(" · ")}`;
+            } else {
+              nowEl.hidden = true;
+              nowEl.textContent = "";
+            }
+          }
+          document.getElementById("charLiveKpis").innerHTML = `
+            <div class="kpi"><b>L${esc(live?.level ?? p.level ?? "—")}</b>level</div>
+            <div class="kpi"><b>+${esc(live?.levels_gained ?? p.levels_gained ?? p.dings ?? 0)}</b>this weekend</div>
+            <div class="kpi"><b>${esc(live?.deaths ?? p.deaths)}</b>deaths</div>
+            <div class="kpi"><b>${esc(p.zones)}</b>zones</div>
+            <div class="kpi"><b>${esc(p.quests_completed ?? "—")}</b>quests</div>
+            <div class="kpi"><b>${esc(gold(p.copper))}</b>gold</div>`;
+          const careerHtml = careerStripHtml(live?.career);
+          let careerEl = document.getElementById("charCareer");
+          if (careerHtml) {
+            if (careerEl) careerEl.outerHTML = careerHtml;
+            else {
+              const kpis = document.getElementById("charLiveKpis");
+              if (kpis) kpis.insertAdjacentHTML("afterend", careerHtml);
+            }
+          }
+          const legHtml = legacyJourneyHtml(live?.legacy || null, { compact: false });
+          let legEl = document.getElementById("charLegacy");
+          if (legHtml) {
+            const wrapped = `<div id="charLegacy">${legHtml}</div>`;
+            if (legEl) legEl.outerHTML = wrapped;
+            else {
+              const after = document.getElementById("charCareer") || document.getElementById("charLiveKpis");
+              if (after) after.insertAdjacentHTML("afterend", wrapped);
+            }
+          }
+          const act = document.getElementById("charLiveActivity");
+          if (act) act.innerHTML = activityBlock(activity);
+          return;
+        }
+
+        const deaths = detail?.deaths || c.deaths.filter((d) => d.character === p.character).slice(0, 8);
+        const sessions = detail?.sessions || [];
+        const span = p.observed_span_seconds
+          ? `${Math.floor(p.observed_span_seconds / 3600)}h ${Math.floor((p.observed_span_seconds % 3600) / 60)}m`
+          : "—";
+        const liveLine = liveBits.length
+          ? `<p class="meta" id="charLiveNow" style="color:var(--gold)">Now: ${esc(liveBits.join(" · "))}</p>`
+          : `<p class="meta" id="charLiveNow" hidden></p>`;
+        app.dataset.charDetail = cacheKey;
+        app.innerHTML = `
+          <p class="meta"><a href="/characters" style="color:var(--gold)">← Characters</a></p>
+          <h2>${esc(p.character)}</h2>
+          ${liveLine}
+          <div class="kpis" id="charLiveKpis">
+            <div class="kpi"><b>L${esc(live?.level ?? p.level ?? "—")}</b>level</div>
+            <div class="kpi"><b>+${esc(live?.levels_gained ?? p.levels_gained ?? p.dings ?? 0)}</b>this weekend</div>
+            <div class="kpi"><b>${esc(live?.deaths ?? p.deaths)}</b>deaths</div>
+            <div class="kpi"><b>${esc(p.zones)}</b>zones</div>
+            <div class="kpi"><b>${esc(p.quests_completed ?? "—")}</b>quests</div>
+            <div class="kpi"><b>${esc(gold(p.copper))}</b>gold</div>
+          </div>
+          ${careerStripHtml(live?.career)}
+          <div id="charLegacy">${legacyJourneyHtml(live?.legacy || null, { compact: false })}</div>
+          <p class="note">Deaths and weekend levels match the Live board when available. Pace below is counted from presence timestamps.</p>
+          <h2>PACE <span class="honesty-chip">COUNTED</span></h2>
+          <div class="kpis">
+            <div class="kpi"><b>${esc(span)}</b>weekend span</div>
+            <div class="kpi"><b>${esc(p.levels_per_hour ?? "—")}</b>levels/hour</div>
+            <div class="kpi"><b>${esc(p.deaths_per_hour ?? "—")}</b>deaths/hour</div>
+          </div>
+          <p class="meta">${esc(p.class || "")} ${esc(p.race || "")} · first ${esc(clock(p.first_at))} · last ${esc(clock(p.last_at))}</p>
+          <p class="note">Pace uses first↔last event time (includes AFK). Not a skill score.</p>
+          <div id="charLiveActivity">${activityBlock(activity)}</div>
+          <p><a href="/timeline?character=${encodeURIComponent(p.character)}" style="color:var(--gold)">Full timeline →</a>
+           · <a href="/deaths" style="color:var(--gold)">All deaths →</a></p>
+          ${sessions.length ? `<h2>SESSIONS <span class="honesty-chip">COUNTED</span></h2><table><tr><th>#</th><th>When</th><th>Length</th><th>Dings</th><th>Deaths</th><th>Zones</th></tr>
+            ${sessions.map((s) => `<tr><td>${s.n}</td><td>${esc(clock(s.start_at))}</td><td>${esc(spanLabel(s.seconds))}</td><td>${s.dings}</td><td>${s.deaths}</td><td>${s.zones}</td></tr>`).join("")}
+          </table><p class="note">Sessions split on logout/offline or ~45m gaps. Approximate.</p>` : `<p class="note">No sessions counted yet.</p>`}
+          <h2>DEATHS <span class="honesty-chip">LOGGED</span></h2>
+          ${deaths.length ? `<table><tr><th>When</th><th>Recap</th><th>Zone</th></tr>${deaths.map((d) =>
+            `<tr><td><a class="death-link" href="/deaths?id=${encodeURIComponent(d.id)}">${esc(clock(d.at))}</a></td><td>${esc(d.death_summary || d.narrative)}</td><td>${esc(d.zone || "—")}</td></tr>`).join("")}</table>`
+            : `<p class="note">No deaths logged.</p>`}`;
+      }
+
+      async function renderRace() {
+        location.replace("/#trajectory");
+      }
+
+      /** Sync/bookkeeping rows — real events, but they drown the story in the ALL view. */
+      const PLUMBING_TYPES = new Set([
+        "PARTY_ROSTER",
+        "COMBAT_ZONE",
+        "COMBAT_LOG_VERSION",
+        "PLAYER_PLAYING",
+        "PLAYER_POWER_STATS",
+        "PLAYER_PROFESSIONS",
+      ]);
+      const TYPE_TONE = {
+        PLAYER_LEVEL_CHANGED: "ding",
+        PLAYER_DIED: "death",
+        COMBAT_PLAYER_DEATH: "death",
+        PLAYER_RESURRECTED: "ding",
+        PLAYER_LOOT_RARE: "loot",
+        PLAYER_LOOT_EPIC: "epic",
+        PLAYER_PVP_KILL: "death",
+      };
+
+      /** Fold the combat-log death recap into the logged death row next to it. */
+      function mergeDeathRecaps(rows) {
+        const out = [];
+        for (const r of rows) {
+          if (r.type === "COMBAT_PLAYER_DEATH") {
+            const t = new Date(r.at).getTime();
+            const died = out.find(
+              (o) =>
+                o.type === "PLAYER_DIED" &&
+                o.character === r.character &&
+                Math.abs(new Date(o.at).getTime() - t) <= 5000
+            );
+            if (died) {
+              if (r.summary && !died.recap) died.recap = r.summary;
+              continue;
+            }
+          }
+          out.push({ ...r });
+        }
+        return out;
+      }
+
+      function dayKey(iso) {
+        const d = new Date(iso);
+        if (!Number.isFinite(d.getTime())) return "";
+        const opts = { weekday: "long", day: "numeric", month: "short" };
+        if (window.__foreverLanTz) opts.timeZone = window.__foreverLanTz;
+        return d.toLocaleDateString("en-GB", opts);
+      }
+
+      async function renderTimeline(c) {
+        const names = c.characters.map((p) => p.character);
+        const character = params.get("character") || "ALL";
+        const bucket = params.get("bucket") || "ALL";
+        const showAll = params.get("raw") === "1";
+        const buckets = ["ALL","LEVELING","DEATHS","LOOT","QUESTS","ZONES","GROUP","TRAVEL","PROFESSIONS"];
+        const q = new URLSearchParams({ character, bucket, limit: "250" });
+        const data = await (await fetch(`/api/v1/timeline?${q}`)).json();
+        const showWho = character === "ALL";
+        const thinned = mergeDeathRecaps(thinDistanceRows(data.rows || []));
+        const hideable = bucket === "ALL" && !showAll;
+        const rows = hideable ? thinned.filter((r) => !PLUMBING_TYPES.has(r.type)) : thinned;
+        const hiddenCount = thinned.length - rows.length;
+        const total = Number(data.total);
+        const serverTruncated = !!data.truncated;
+        const totalLabel = Number.isFinite(total) ? total : thinned.length;
+        const cols = showWho ? 4 : 3;
+        let lastDay = "";
+        const body = rows
+          .map((r) => {
+            const day = dayKey(r.at);
+            const sep = day && day !== lastDay ? `<tr class="tl-day"><td colspan="${cols}">${esc(day)}</td></tr>` : "";
+            lastDay = day || lastDay;
+            const tone = TYPE_TONE[r.type] ? ` class="tl-${TYPE_TONE[r.type]}"` : "";
+            const recap = r.recap ? ` — <i>${esc(r.recap)}</i>` : "";
+            return `${sep}<tr><td class="tl-when">${esc(clock(r.at).replace(/^\S+\s/, ""))}</td>${showWho?`<td><a class="death-link" href="/characters?name=${encodeURIComponent(r.character||"")}">${esc(r.character||"")}</a></td>`:""}<td${tone}>${esc(eventTypeLabel(r.type, r))}</td><td>${esc(r.summary)}${recap}${r.zone && !String(r.summary || "").includes(r.zone) ? " · "+esc(r.zone) : ""}</td></tr>`;
+          })
+          .join("");
+        const rawToggle = bucket !== "ALL"
+          ? ""
+          : showAll
+            ? ` · <a class="death-link" href="#" id="rawToggle">hide sync rows</a>`
+            : hiddenCount
+              ? ` · ${hiddenCount} sync rows hidden (party roster, combat-log zone, stats refresh) · <a class="death-link" href="#" id="rawToggle">show all</a>`
+              : "";
+        const countNote =
+          serverTruncated || (Number.isFinite(total) && total > rows.length)
+            ? `Showing last ${rows.length} of ${totalLabel}`
+            : `Showing ${rows.length}`;
+        app.innerHTML = `<h2>TIMELINE <span class="honesty-chip">LOGGED</span></h2>
+          <p class="note">What Forever logged this weekend, newest first. Distance shows checkpoints (~500 yd), not every tick.${window.__foreverLanTz ? ` Times: host zone (${esc(window.__foreverLanTz)}).` : ""}</p>
+          <p><select id="who"><option value="ALL" ${character==="ALL"?"selected":""}>All roster</option>${names.map((n) => `<option value="${esc(n)}" ${n===character?"selected":""}>${esc(n)}</option>`).join("")}</select></p>
+          <div class="filters">${buckets.map((b) =>
+            `<button class="${b===bucket?"on":""}" data-b="${b}">${b}</button>`).join("")}</div>
+          <p class="note">${countNote} rows${rawToggle}</p>
+          ${rows.length ? `<table class="tl"><tr><th>Time</th>${showWho?"<th>Who</th>":""}<th>Type</th><th>What happened</th></tr>
+          ${body}</table>` : `<p class="note">No events in this filter yet.</p>`}
+          <p class="note">Straight from the weekend log. Bucket filters are just labels, not skill scores.</p>`;
+        document.getElementById("rawToggle")?.addEventListener("click", (e) => {
+          e.preventDefault();
+          if (showAll) params.delete("raw");
+          else params.set("raw", "1");
+          location.search = params.toString();
+        });
+        document.getElementById("who").onchange = (e) => {
+          params.set("character", e.target.value);
+          location.search = params.toString();
+        };
+        app.querySelectorAll(".filters button").forEach((btn) => {
+          btn.onclick = () => {
+            params.set("character", character);
+            params.set("bucket", btn.dataset.b);
+            location.search = params.toString();
+          };
+        });
+      }
+
+      function thinDistanceRows(rows) {
+        const out = [];
+        const lastKept = new Map();
+        for (const r of rows) {
+          if (r.type !== "PLAYER_DISTANCE") {
+            out.push(r);
+            continue;
+          }
+          let yards = Number(r.distance_yards);
+          if (!Number.isFinite(yards)) {
+            const m = String(r.summary || "").match(/([\d.]+)\s*(km|m)/i);
+            if (m) {
+              const n = Number(m[1]);
+              yards = m[2].toLowerCase() === "km" ? (n * 1000) / 0.9144 : n / 0.9144;
+            } else yards = 0;
+          }
+          const key = r.character || "?";
+          const prev = lastKept.get(key);
+          if (prev == null || Math.abs(yards - prev) >= 500) {
+            out.push(r);
+            lastKept.set(key, yards);
+          }
+        }
+        return out;
+      }
+
+      const zoneUi = { view: null, selected: null, key: "", idx: null, activity: null, live: false };
+
+      async function renderZones(c) {
+        const ZM = window.ForeverZoneMap;
+        let idx;
+        try {
+          idx = await ZM.loadGeometry("/public/data/maps/world-zones.json?v=geo5");
+        } catch (err) {
+          app.innerHTML = `<h2>WEEKEND HEATMAP</h2><p class="note">Zone outlines failed to load (${esc(err.message)}). Ranking below is still counted from the board.</p>`;
+          return;
+        }
+        zoneUi.idx = idx;
+        const key = ZM.activityKey(c.zones);
+        if (key !== zoneUi.key || !zoneUi.activity) {
+          zoneUi.activity = ZM.aggregateZoneActivity(c.zones || [], idx);
+          zoneUi.key = key;
+        }
+        const act = zoneUi.activity;
+        const mapped = [...act.mapped.values()].sort((a, b) => b.heat - a.heat || a.zoneName.localeCompare(b.zoneName));
+
+        if (!mapped.length && !act.unmapped.length) {
+          app.innerHTML = `<h2>WEEKEND HEATMAP</h2>
+            <p class="note">No zone names on events yet — heat appears as the party levels.</p>`;
+          return;
+        }
+        if (!zoneUi.view) {
+          const conts = new Set(mapped.map((a) => a.continent));
+          zoneUi.view = conts.size === 1 ? [...conts][0] : "world";
+        }
+        paintZones();
+        if (!zoneUi.live) {
+          zoneUi.live = true;
+          let timer = null;
+          const es = new EventSource("/stream");
+          es.onmessage = () => {
+            if (timer) return;
+            timer = setTimeout(async () => {
+              timer = null;
+              try {
+                const fresh = await (await fetch("/api/v1/catalog")).json();
+                if (ZM.activityKey(fresh.zones) !== zoneUi.key) renderZones(fresh);
+              } catch {
+                /* keep the last board */
+              }
+            }, 4000);
+          };
+        }
+      }
+
+      function paintZones() {
+        const ZM = window.ForeverZoneMap;
+        const { idx, activity: act } = zoneUi;
+        const mapped = [...act.mapped.values()].sort((a, b) => b.heat - a.heat || a.zoneName.localeCompare(b.zoneName));
+        const top = mapped[0];
+        const conts = Object.keys(idx.geo.continents || {});
+        const viewBtn = (v, label) =>
+          `<button type="button" class="zm-view${zoneUi.view === v ? " on" : ""}" data-view="${esc(v)}">${esc(label)}</button>`;
+        const lv = (z) => (z?.levels ? `Lv ${z.levels[0]}–${z.levels[1]}` : "");
+        const who = (names) =>
+          names.map((n) => `<a class="death-link" href="/characters?name=${encodeURIComponent(n)}">${esc(n)}</a>`).join(" · ");
+        const cap = ZM.HEAT_FULL;
+        const mid = Math.round(Math.expm1(Math.log1p(cap) / 2));
+
+        const ranks = mapped
+          .map((a) => {
+            const pct = Math.max(4, Math.round(ZM.heatIntensity(a.heat) * 100));
+            return `<div class="heat-row zm-rank" data-zone="${esc(a.zoneName)}">
+              <div class="zn">${esc(a.zoneName)}</div>
+              <div class="track"><div class="fill" style="width:${pct}%;background:${ZM.heatFill(a.intensity)}"></div></div>
+              <div class="nums">${a.uniquePlayers} player${a.uniquePlayers === 1 ? "" : "s"} · ${a.visits} entr${a.visits === 1 ? "y" : "ies"}</div>
+            </div>`;
+          })
+          .join("");
+        const off = act.unmapped.length
+          ? `<div class="off-map"><b class="zm-off-h">NOT ON THE MAP</b> ${act.unmapped
+              .map((u) => `<span class="zm-off" title="${esc(u.reason)}">${esc(u.zone)} <i>${u.players.length}p · ${u.visits}e</i></span>`)
+              .join("")}<div class="note">No traced outline — listed, never approximated.</div></div>`
+          : "";
+
+        app.innerHTML = `<h2>WEEKEND HEATMAP</h2>
+          <p class="note">Each zone is filled by its real outline from the client map. Dark = no logged activity there yet.</p>
+          <div class="zm-toolbar">
+            <div class="zm-views">${viewBtn("world", "Azeroth")}${conts.map((cn) => viewBtn(cn, cn)).join("")}</div>
+            <div class="zm-legend" aria-label="Heat legend">
+              <span class="zm-sw fog"></span><span>Unexplored</span>
+              <span class="zm-ramp" style="background:linear-gradient(90deg, ${ZM.heatFill(0)}, ${ZM.heatFill(0.5)}, ${ZM.heatFill(1)})"></span>
+              <span class="zm-ticks"><span>1</span><span>${mid}</span><span>${cap}+</span></span>
+              <span class="zm-chip">COUNTED</span>
+            </div>
+          </div>
+          <div class="zm-wrap">
+            <div class="zm-map">${ZM.renderSvg(idx, act, zoneUi.view, zoneUi.selected)}</div>
+            <div class="zm-tip" hidden></div>
+          </div>
+          <p class="map-credit">Heat = players seen + zone entries, both counted from logged zone changes (log scale).
+            Zone-level only: positions are logged on login and party changes, too sparse for a GPS-style density map.
+            Map art: Forever beta client · © Blizzard Entertainment.</p>
+          <div class="zm-detail" id="zm-detail"></div>
+          ${off}
+          <h2>RANKED</h2>
+          <div class="heat-rank">${ranks}</div>`;
+
+        const detail = document.getElementById("zm-detail");
+        const paintDetail = () => {
+          const z = zoneUi.selected ? idx.byName.get(zoneUi.selected.toLowerCase()) : null;
+          if (!z) {
+            detail.innerHTML = top
+              ? `<p class="note">Hottest: <b class="zm-gold">${esc(top.zoneName)}</b> — click a zone for who was there.</p>`
+              : "";
+            return;
+          }
+          const a = act.mapped.get(z.zoneName);
+          if (!a) {
+            detail.innerHTML = `<div class="zm-card"><h3>${esc(z.zoneName)}</h3><p class="note">${esc(lv(z))} · Nobody from the board has entered this zone.</p></div>`;
+            return;
+          }
+          const players = [...a.players].sort();
+          const perPlayer = players
+            .map((n) => `<li>${who([n])}${a.visitsBy[n] ? ` <span class="note">${a.visitsBy[n]} entr${a.visitsBy[n] === 1 ? "y" : "ies"}</span>` : ""}</li>`)
+            .join("");
+          const parts = a.parts.length
+            ? `<p class="note">Includes ${a.parts.map((p) => `${esc(p.name)} (${p.visits} entr${p.visits === 1 ? "y" : "ies"})`).join(", ")} — reported separately, drawn inside ${esc(z.zoneName)}.</p>`
+            : "";
+          detail.innerHTML = `<div class="zm-card">
+            <h3>${esc(z.zoneName)} <span class="zm-chip">COUNTED</span></h3>
+            <p class="note">${esc(z.continent)}${lv(z) ? ` · ${esc(lv(z))}` : ""} · ${a.uniquePlayers} player${a.uniquePlayers === 1 ? "" : "s"} · ${a.visits} zone entr${a.visits === 1 ? "y" : "ies"} · ${a.dings} ding${a.dings === 1 ? "" : "s"} · ${a.deaths} death${a.deaths === 1 ? "" : "s"}</p>
+            <ul class="zm-who">${perPlayer}</ul>
+            ${parts}
+            ${a.deaths ? `<p><a class="death-link" href="/deaths">Deaths →</a></p>` : ""}
+          </div>`;
+        };
+        paintDetail();
+
+        const wrap = app.querySelector(".zm-wrap");
+        const tip = app.querySelector(".zm-tip");
+        const tipHtml = (name) => {
+          const z = idx.byName.get(name.toLowerCase());
+          const a = act.mapped.get(name);
+          const head = `<b>${esc(name)}</b>${lv(z) ? ` <span class="zm-lv">${esc(lv(z))}</span>` : ""}`;
+          if (!a) return `${head}<div>Unexplored</div>`;
+          const names = [...a.players].sort().join(", ");
+          return `${head}
+            <div>${a.uniquePlayers} player${a.uniquePlayers === 1 ? "" : "s"} · ${a.visits} entr${a.visits === 1 ? "y" : "ies"}</div>
+            ${names ? `<div class="zm-tip-who">${esc(names)}</div>` : ""}
+            ${a.deaths || a.dings ? `<div>${a.dings} ding${a.dings === 1 ? "" : "s"} · ${a.deaths} death${a.deaths === 1 ? "" : "s"}</div>` : ""}
+            ${a.parts.length ? `<div class="zm-tip-parts">incl. ${esc(a.parts.map((p) => p.name).join(", "))}</div>` : ""}`;
+        };
+        wrap.addEventListener("mousemove", (ev) => {
+          const el = ev.target.closest?.(".zm-zone");
+          if (!el) {
+            tip.hidden = true;
+            return;
+          }
+          tip.innerHTML = tipHtml(el.dataset.zone);
+          tip.hidden = false;
+          const box = wrap.getBoundingClientRect();
+          const x = ev.clientX - box.left, y = ev.clientY - box.top;
+          tip.style.left = `${Math.min(x + 14, box.width - tip.offsetWidth - 6)}px`;
+          tip.style.top = `${y + 16 + tip.offsetHeight > box.height ? y - tip.offsetHeight - 10 : y + 16}px`;
+        });
+        wrap.addEventListener("mouseleave", () => (tip.hidden = true));
+        const select = (name) => {
+          zoneUi.selected = zoneUi.selected === name ? null : name;
+          paintZones();
+        };
+        wrap.addEventListener("click", (ev) => {
+          const el = ev.target.closest?.(".zm-zone");
+          if (el) select(el.dataset.zone);
+        });
+        app.querySelectorAll(".zm-view").forEach((b) =>
+          b.addEventListener("click", () => {
+            zoneUi.view = b.dataset.view;
+            paintZones();
+          })
+        );
+        app.querySelectorAll(".zm-rank").forEach((row) =>
+          row.addEventListener("click", () => {
+            const z = idx.byName.get(row.dataset.zone.toLowerCase());
+            if (z && zoneUi.view !== "world") zoneUi.view = z.continent;
+            zoneUi.selected = row.dataset.zone;
+            paintZones();
+          })
+        );
+      }
+
+      function deathCauseLabel(d) {
+        if (d.death_summary) return d.death_summary;
+        if (d.killer_name) return `slain by ${d.killer_name}`;
+        if (d.death_cause === "environmental") return d.environmental_type || "environment";
+        if (d.death_cause) return d.death_cause;
+        return "—";
+      }
+
+      function renderDeaths(c) {
+        const id = params.get("id");
+        const one = id ? c.deaths.find((d) => d.id === id) : null;
+        if (one) {
+          const cause = deathCauseLabel(one);
+          app.innerHTML = `<p class="meta"><a href="/deaths" style="color:var(--gold)">← All deaths</a> · <a href="/characters?name=${encodeURIComponent(one.character)}" style="color:var(--gold)">${esc(one.character)}</a></p>
+            <h2>DEATH</h2>
+            <div class="name">${esc(one.character)}</div>
+            <div class="kpis">
+              <div class="kpi"><b>${esc(one.level ?? "—")}</b>level</div>
+              <div class="kpi"><b>${esc(one.zone || "—")}</b>zone</div>
+              <div class="kpi"><b>${one.spree_20m}</b>in 20m</div>
+              <div class="kpi"><b style="font-size:0.9rem">${esc(cause)}</b>recap</div>
+            </div>
+            <p>${esc(clock(one.at))}</p>
+            <p>${esc(one.narrative)}</p>
+            <p class="note">Death is logged. Recap (mob / fall) is combat-log color when /combatlog was on — otherwise blank. Spree timing is counted.</p>
+            <p><a class="death-link" href="/timeline?character=${encodeURIComponent(one.character)}&bucket=DEATHS">Deaths on timeline →</a></p>`;
+          return;
+        }
+        const all = c.deaths || [];
+        const who = params.get("who") || "";
+        const rows = who ? all.filter((d) => d.character === who) : all;
+        const withRecap = all.filter((d) => d.death_summary || d.killer_name).length;
+        const tally = (list, keyOf) => {
+          const m = new Map();
+          for (const d of list) {
+            const k = keyOf(d);
+            if (k) m.set(k, (m.get(k) || 0) + 1);
+          }
+          return [...m.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])));
+        };
+        const byChar = tally(all, (d) => d.character);
+        const envLabel = (d) => {
+          const t = String(d.environmental_type || "").trim();
+          return t && !/^environment/i.test(t) ? `Environment (${t.toLowerCase()})` : "Environment";
+        };
+        const killers = tally(all, (d) => d.killer_name || (d.death_cause === "environmental" ? envLabel(d) : ""));
+        const zones = tally(all, (d) => d.zone);
+        const maxChar = byChar[0]?.[1] || 1;
+        const board = all.length
+          ? `<div class="gy">
+              <section class="gy-col">
+                <h3>GRAVEYARD REGULARS <span class="honesty-chip">COUNTED</span></h3>
+                ${byChar
+                  .map(
+                    ([name, n], i) => `<a class="gy-row${who === name ? " on" : ""}" href="/deaths?who=${encodeURIComponent(name)}">
+                      <span class="gy-name">${i === 0 ? "☠ " : ""}${esc(name)}</span>
+                      <span class="gy-track"><span style="width:${Math.max(6, Math.round((n / maxChar) * 100))}%"></span></span>
+                      <b>${n}</b></a>`
+                  )
+                  .join("")}
+              </section>
+              <section class="gy-col">
+                <h3>TOP KILLERS <span class="honesty-chip">LOGGED</span></h3>
+                ${killers.length
+                  ? killers.slice(0, 6).map(([k, n]) => `<div class="gy-row"><span class="gy-name">${esc(k)}</span><b>${n}</b></div>`).join("")
+                  : `<p class="note">No combat-log recaps yet — turn on /combatlog to name the culprits.</p>`}
+                ${withRecap < all.length ? `<p class="note">${all.length - withRecap} deaths without a recap.</p>` : ""}
+              </section>
+              <section class="gy-col">
+                <h3>DEADLIEST ZONES <span class="honesty-chip">COUNTED</span></h3>
+                ${zones.slice(0, 6).map(([z, n]) => `<div class="gy-row"><span class="gy-name">${esc(z)}</span><b>${n}</b></div>`).join("")}
+              </section>
+            </div>`
+          : "";
+        app.innerHTML = `<h2>DEATHS <span class="honesty-chip">LOGGED</span></h2>
+          <p class="note">${all.length} logged · ${withRecap} with combat-log recap · open a row for detail</p>
+          ${board}
+          ${who ? `<p class="note">Showing ${rows.length} for <b>${esc(who)}</b> · <a class="death-link" href="/deaths">all deaths</a></p>` : ""}
+          ${
+            rows.length
+              ? `<table class="deaths-table"><tr><th>When</th><th>Who</th><th>Lvl</th><th>Zone</th><th>Recap</th><th>Story</th></tr>
+          ${rows
+            .map(
+              (d) =>
+                `<tr><td class="tl-when"><a class="death-link" href="/deaths?id=${encodeURIComponent(d.id)}">${esc(clock(d.at))}</a></td><td><a class="death-link" href="/characters?name=${encodeURIComponent(d.character)}">${esc(d.character || "")}</a></td><td>${esc(d.level ?? "—")}</td><td>${esc(d.zone || "—")}</td><td>${esc(deathCauseLabel(d))}</td><td class="story">${esc(d.narrative)}</td></tr>`
+            )
+            .join("")}
+          </table>`
+              : `<p class="note">No deaths logged yet.</p>`
+          }`;
+      }
+
+      function renderMilestones(c) {
+        location.replace("/characters");
+      }
+
+      load().catch((err) => { app.textContent = String(err); });
+    </script>
+  </body>
+</html>

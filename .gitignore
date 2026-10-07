@@ -1,25 +1,26 @@
 # Secrets / local host config (keep config.example.json)
-phase1/config.json
+config.json
 **/config.local.json
 .env
 .env.*
 !.env.example
-phase1/curseforge.json
+curseforge.json
 
 # Cloudflare Tunnel (local credentials + portable binary)
-phase1/cloudflare/config.yml
-phase1/cloudflare/bin/
-phase1/cloudflare/*.json
+cloudflare/config.yml
+cloudflare/bin/
+cloudflare/*.json
 **/.cloudflared/
 
 # Large local archives
 *.zip
 phase1 (2).zip
+phase1.zip
 
 # Runtime / local data
-phase1/data/
-phase1/.cache/
-phase1/backups/
+data/
+.cache/
+backups/
 **/outbox.jsonl
 **/collector-state.json
 **/addon-ack.json
