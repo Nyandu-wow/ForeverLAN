@@ -13,3 +13,12 @@
 ## AddonCompartmentFunc: ForeverLAN_OnAddonCompartmentClick
 
 ForeverLAN.lua
+Core/Store.lua
+Core/Session.lua
+Core/Queue.lua
+Core/Read.lua
+Telemetry/Self.lua
+Group/Party.lua
+Group/Combat.lua
+UI/Pin.lua
+Events.lua
