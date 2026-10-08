@@ -1,8 +1,5 @@
 package-as: ForeverLAN
 
-# CurseForge / WowUp packaging. Addon files live at the repo root
-# (same layout as BigWigs / ClassicUI Forever).
-
 ignore:
   - lan
   - .cursor
