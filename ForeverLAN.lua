@@ -47,7 +47,7 @@ _G.ForeverLAN_Env = env
 setfenv(1, env)
 
 ADDON_NAME = addonName
-ADDON_VERSION = "0.1.69"
+ADDON_VERSION = "0.1.70"
 SV_SCHEMA = 3
 -- Optional friend-pack inject (ForeverLAN_Party.lua). CurseForge ships empty.
 BUILTIN_ROSTER = (ForeverLAN_Party and ForeverLAN_Party.roster) or {}

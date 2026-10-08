@@ -1,8 +1,12 @@
 # Changelog
 
+## 0.1.70
+
+- Split the addon into smaller load-order files (same behavior)
+- TOC lists Core, Telemetry, Group, UI, and Events modules
+
 ## 0.1.69
 
-- Addon source split into smaller files (same behavior)
 - CurseForge storefront copy aligned with moderation policies (local SavedVariables wording; no “cloud telemetry” framing)
 - TOC Notes clarify: disk-only, never connects online
 - Paste-ready project listing documented in repo `CURSEFORGE_LISTING.md`
