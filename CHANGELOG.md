@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.72
+
+- Push summary survives reload: saved to CharDB, printed in chat ~1s after UI comes back (pre-reload chat was wiped by ReloadUI)
+
+## 0.1.71
+
+- Push LAN chat feedback: how many new events hit disk, type breakdown, total for collector, left unsaved (honest: disk flush; collector/host after reload)
+
 ## 0.1.70
 
 - Split the addon into smaller load-order files (same behavior)

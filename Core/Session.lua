@@ -15,6 +15,8 @@ COMBATLOG_REMIND_SEC = 900 -- 15 min between combat-log nudges
 COMBATLOG_REMIND_MAX = 3 -- per session
 -- Set while Push LAN triggers C_UI.Reload so LOGOUT does not mark the board Offline.
 pushingLan = false
+-- One-shot guard so Push summary is not printed twice (LOGIN + ENTERING_WORLD).
+pushReportPrintedThisLoad = false
 
 tracked = {}
 lastInstanceState = nil

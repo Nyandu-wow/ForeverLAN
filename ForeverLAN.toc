@@ -3,7 +3,7 @@
 ## Title: Forever LAN
 ## Notes: Local SavedVariables event log for a house LAN. FL = save to disk. Never connects online. /fl
 ## Author: Forever LAN
-## Version: 0.1.70
+## Version: 0.1.72
 ## X-Category: Miscellaneous
 ## X-License: All Rights Reserved
 ## X-Website: https://github.com/Nyandu-wow/ForeverLAN

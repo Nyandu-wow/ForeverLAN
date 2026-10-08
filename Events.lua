@@ -128,6 +128,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
     hookMapTelemetry()
     showLoadHint()
     showCombatLogHint()
+    maybePrintPushReport()
     ui.applyUiSettings()
     return
   end
@@ -137,6 +138,8 @@ frame:SetScript("OnEvent", function(_, event, ...)
     recordCapabilities()
     showLoadHint()
     showCombatLogHint()
+    -- Reload path sometimes skips a clean PLAYER_LOGIN chat window; try again.
+    maybePrintPushReport()
     playerGUID = UnitGUID("player")
     if not enteredWorld then
       enteredWorld = true

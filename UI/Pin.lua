@@ -91,15 +91,14 @@ end
 
 ui.doPushLan = function()
   emitPartyRoster("flush")
-  local n = flushForPush()
+  -- Summarize before flush so "new since last Push" is still meaningful.
+  local newCount, alreadyCount, total, breakdown = summarizePendingForPush()
+  flushForPush()
+  -- Do not chat() here: ReloadUI clears those lines. Persist, print after reload.
+  storePushReport(buildPushReportLines(newCount, alreadyCount, total, breakdown))
   ui.refreshPushButton()
   lastPushRemindAt = now()
   lastQueueCapRemindAt = now()
-  if n == 0 then
-    chat("Reloading for collector.")
-  else
-    chat(string.format("Saved %d - collector sends when host is up.", n))
-  end
   pushingLan = true
   reloadForCollector()
 end

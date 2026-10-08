@@ -248,6 +248,158 @@ function flushForPush()
   return saveForCollector()
 end
 
+-- Short labels for Push feedback (chat only). Unknown types fall back to raw name.
+PUSH_SUMMARY_LABEL = {
+  LOGIN = "login",
+  LOGOUT = "logout",
+  WORLD_ENTER = "world",
+  PLAYER_PLAYING = "playing",
+  PLAYER_DETECTED = "detected",
+  PLAYER_ONLINE = "online",
+  PLAYER_OFFLINE = "offline",
+  PLAYER_LEVEL_CHANGED = "ding",
+  PLAYER_DIED = "death",
+  PLAYER_RESURRECTED = "rez",
+  PLAYER_ZONE = "zone",
+  PLAYER_MAP_OPENED = "map",
+  PLAYER_DISTANCE = "distance",
+  PLAYER_MONEY = "money",
+  PLAYER_QUESTS = "quests",
+  PLAYER_PROFESSIONS = "professions",
+  PLAYER_FOOD_BUFF = "buff",
+  PLAYER_COMBAT_TIME = "combat-time",
+  PLAYER_CRAFT = "craft",
+  PLAYER_LOOT_RARE = "rare-loot",
+  PLAYER_LOOT_EPIC = "epic-loot",
+  PLAYER_POWER_STATS = "power",
+  POSITION_UPDATE = "position",
+  PING = "ping",
+  PARTY_ROSTER = "party",
+}
+
+--- Count what Push will write to disk vs what was already covered by last flush.
+--- Returns: newCount, alreadyCount, total, breakdown (sorted "label xN" parts, top few).
+function summarizePendingForPush()
+  local flushedAt = flushMeta().last_flush_at
+  local total = #pending
+  local newCount = 0
+  local byType = {}
+  for _, ev in ipairs(pending) do
+    if ev and ev.type then
+      local ts = tonumber(ev.ts) or 0
+      local isNew = flushedAt <= 0 or ts > flushedAt
+      if isNew then
+        newCount = newCount + 1
+        local key = ev.type
+        byType[key] = (byType[key] or 0) + 1
+      end
+    end
+  end
+  local parts = {}
+  for t, c in pairs(byType) do
+    parts[#parts + 1] = { t = t, c = c }
+  end
+  table.sort(parts, function(a, b)
+    if a.c ~= b.c then
+      return a.c > b.c
+    end
+    return a.t < b.t
+  end)
+  local bits = {}
+  local shown = 0
+  local other = 0
+  for i = 1, #parts do
+    if shown < 5 then
+      local label = PUSH_SUMMARY_LABEL[parts[i].t] or parts[i].t
+      bits[#bits + 1] = string.format("%s %d", label, parts[i].c)
+      shown = shown + 1
+    else
+      other = other + parts[i].c
+    end
+  end
+  if other > 0 then
+    bits[#bits + 1] = string.format("other %d", other)
+  end
+  return newCount, total - newCount, total, table.concat(bits, ", ")
+end
+
+--- Build Push chat lines (not printed yet - reload would wipe them).
+function buildPushReportLines(newCount, alreadyCount, total, breakdown)
+  local lines = {}
+  if total == 0 then
+    lines[#lines + 1] = "Push done: queue was empty - nothing for the collector."
+  elseif newCount == 0 then
+    lines[#lines + 1] = string.format(
+      "Push done: already on disk (%d events) - collector can re-read.",
+      total
+    )
+  else
+    lines[#lines + 1] = string.format(
+      "Push done: |cffffffff%d|r new → disk (%d total for collector). Left unsaved: |cffffffff0|r.",
+      newCount,
+      total
+    )
+    if breakdown and breakdown ~= "" then
+      lines[#lines + 1] = "  " .. breakdown
+    end
+    if alreadyCount > 0 then
+      lines[#lines + 1] = string.format(
+        "  (+ %d already saved earlier still in the snapshot)",
+        alreadyCount
+      )
+    end
+  end
+  lines[#lines + 1] = "Collector reads the file after reload; host when the collector is up."
+  return lines
+end
+
+--- Persist report into CharDB so it survives the Push reload, then print on next load.
+function storePushReport(lines)
+  if not activeCharKey then
+    bindActiveCharacter()
+  end
+  local db = charStore()
+  db.push_report_lines = lines
+  db.push_report_at = now()
+  persistCharStore()
+end
+
+--- Print a saved Push report once (after reload). Chat only shows if we wait for the frame.
+function maybePrintPushReport()
+  if pushReportPrintedThisLoad then
+    return false
+  end
+  local db = charStore()
+  local lines = db.push_report_lines
+  if type(lines) ~= "table" or #lines == 0 then
+    return false
+  end
+  local at = tonumber(db.push_report_at) or 0
+  -- Stale leftovers (>10 min) are noise, not a fresh Push.
+  if at > 0 and (now() - at) > 600 then
+    db.push_report_lines = nil
+    db.push_report_at = nil
+    persistCharStore()
+    return false
+  end
+  pushReportPrintedThisLoad = true
+  db.push_report_lines = nil
+  db.push_report_at = nil
+  persistCharStore()
+  local function printLines()
+    for i = 1, #lines do
+      chat(lines[i])
+    end
+  end
+  if C_Timer and C_Timer.After then
+    -- Chat frame is often not ready on ADDON_LOADED; wait a beat after login/reload.
+    C_Timer.After(1.0, printLines)
+  else
+    printLines()
+  end
+  return true
+end
+
 function reloadForCollector()
   if C_UI and C_UI.Reload then
     C_UI.Reload()
