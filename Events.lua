@@ -53,6 +53,10 @@ frame:RegisterEvent("PLAYER_DEAD")
 frame:RegisterEvent("PLAYER_ALIVE")
 frame:RegisterEvent("PLAYER_UNGHOST")
 frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+-- Optional client events are guarded; the existing 8s self ticker is fallback.
+for _, optionalEvent in ipairs({ "PLAYER_XP_UPDATE", "ZONE_CHANGED", "ZONE_CHANGED_INDOORS" }) do
+  pcall(frame.RegisterEvent, frame, optionalEvent)
+end
 frame:RegisterEvent("PLAYER_LOGOUT")
 frame:RegisterEvent("GROUP_ROSTER_UPDATE")
 frame:RegisterEvent("UNIT_LEVEL")
@@ -73,6 +77,17 @@ frame:RegisterEvent("PLAYER_REGEN_DISABLED")
 frame:RegisterEvent("PLAYER_REGEN_ENABLED")
 
 frame:SetScript("OnEvent", function(_, event, ...)
+  if event == "PLAYER_XP_UPDATE" then
+    local unit = ...
+    if unit == nil or unit == "player" then
+      observePlayerXP("xp_update", false)
+    end
+    return
+  end
+  if event == "ZONE_CHANGED" or event == "ZONE_CHANGED_INDOORS" then
+    observePlayerLocation(event, false)
+    return
+  end
   if event == "CHAT_MSG_ADDON" then
     onAddonMessage(...)
     return
@@ -207,6 +222,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
 
   if event == "PLAYER_DEAD" then
     local snap = snapshotUnit("player", {})
+    local subzone = safeCall(GetSubZoneText)
     local deathTs = markDeathStart(snap and snap.guid)
     if snap and snap.guid and tracked[snap.guid] then
       tracked[snap.guid].dead = true
@@ -222,6 +238,10 @@ frame:SetScript("OnEvent", function(_, event, ...)
       is_self = true,
       detection = "PLAYER_DEAD",
       death_started_at = deathTs,
+      subzone = isPlainString(subzone) and subzone or nil,
+      in_combat = combat.entered_at ~= nil,
+      instance_name = snap and snap.in_instance and snap.instance_name or nil,
+      party_size = plainNumber(safeCall(GetNumGroupMembers)),
     }, { silent = false })
     return
   end
@@ -263,6 +283,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
   end
 
   if event == "ZONE_CHANGED_NEW_AREA" then
+    observePlayerLocation(event, false)
     checkPlayerInstanceTransition()
     emitPartyRoster("zone_changed")
     return
@@ -300,6 +321,9 @@ frame:SetScript("OnEvent", function(_, event, ...)
   end
 
   if event == "PLAYER_LOGOUT" then
+    observePlayerXP("logout", true)
+    observePlayerLocation("logout", true)
+    observeQuestProgress(readQuestProgress(), "logout", true)
     emitCombatTime("logout", true)
     local snap = snapshotUnit("player", {}) or {}
     if pushingLan then
@@ -399,6 +423,7 @@ if C_Timer and C_Timer.NewTicker then
     if not enteredWorld then
       return
     end
+    checkPlayerInstanceTransition()
     emitSelfTelemetry("poll", { silent = true })
   end)
   C_Timer.NewTicker(60, function()

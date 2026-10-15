@@ -1,22 +1,109 @@
 setfenv(1, ForeverLAN_Env)
 
+-- Plain-value APIs only. Forever can expose secret XP numbers; those are
+-- unavailable telemetry, never zero XP. Called by events / existing ticker.
+xpPrevious = nil
+xpLastEmitAt = nil
+xpLastEmitKey = nil
+locationLastKey = nil
+locationLastEmitAt = nil
+
+function readPlayerXP()
+  local ok, result = pcall(function()
+    local xp = plainNumber(safeCall(UnitXP, "player"))
+    local maximum = plainNumber(safeCall(UnitXPMax, "player"))
+    local level = plainNumber(safeCall(UnitLevel, "player"))
+    if not xp or not maximum or not level then return nil end
+    if xp ~= xp or maximum ~= maximum or level ~= level then return nil end
+    if xp < 0 or maximum <= 0 or maximum > 1000000000 or xp > maximum or level < 1 or level > 100 then return nil end
+    if xp ~= math.floor(xp) or maximum ~= math.floor(maximum) or level ~= math.floor(level) then return nil end
+    return { xp = xp, maximum = maximum, level = level }
+  end)
+  return ok and result or nil
+end
+
+function observePlayerXP(reason, force)
+  if not enteredWorld then return end
+  local current = readPlayerXP()
+  if not current then
+    -- Do not bridge an unavailable interval with an invented gain.
+    xpPrevious = nil
+    return
+  end
+  local db = charStore()
+  if not db.xp_tracker or db.xp_tracker.guid ~= playerGUID then
+    db.xp_tracker = { key = (playerGUID or "player") .. ":" .. tostring(now()), guid = playerGUID, observed = 0, started_at = now() }
+    xpPrevious = nil
+  end
+  local tracker = db.xp_tracker
+  local gained = 0
+  if xpPrevious then
+    if current.level == xpPrevious.level and current.maximum == xpPrevious.maximum and current.xp >= xpPrevious.xp then
+      gained = current.xp - xpPrevious.xp
+    elseif current.level == xpPrevious.level + 1 then
+      -- Only a single observed rollover can be reconstructed. A skipped level
+      -- or a reload starts a new baseline rather than guessing its XP cost.
+      gained = xpPrevious.maximum - xpPrevious.xp + current.xp
+    end
+  end
+  tracker.observed = (tonumber(tracker.observed) or 0) + gained
+  xpPrevious = current
+  local key = string.format("%d:%d:%d:%d", current.level, current.xp, current.maximum, tracker.observed)
+  local clock = GetTime()
+  if key == xpLastEmitKey then return end
+  if not force and xpLastEmitAt and clock - xpLastEmitAt < 30 then return end
+  local snap = snapshotUnit("player", {}) or {}
+  enqueue("PLAYER_XP_SNAPSHOT", {
+    guid = snap.guid, character = snap.character, realm = snap.realm, class = snap.class,
+    is_self = true, level = current.level, xp_current = current.xp, xp_max = current.maximum,
+    xp_observed = tracker.observed, xp_tracker = tracker.key, xp_started_at = tracker.started_at,
+    detection = "UnitXP/UnitXPMax", reason = reason,
+  }, { silent = true })
+  xpLastEmitAt = clock
+  xpLastEmitKey = key
+end
+
+function observePlayerLocation(reason, force)
+  if not enteredWorld then return end
+  local zone = safeCall(GetZoneText)
+  local subzone = safeCall(GetSubZoneText)
+  if not isPlainString(zone) or not isPlainString(subzone) then return end
+  if zone == "" then return end
+  local key = zone .. "\n" .. subzone
+  if key == locationLastKey then return end
+  local clock = GetTime()
+  -- Bound border oscillation to one record per ten seconds. The existing
+  -- ticker retries a suppressed transition without an extra timer.
+  if not force and locationLastEmitAt and clock - locationLastEmitAt < 10 then return end
+  local snap = snapshotUnit("player", {}) or {}
+  enqueue("PLAYER_LOCATION", {
+    guid = snap.guid, character = snap.character, realm = snap.realm, class = snap.class,
+    is_self = true, zone = zone, subzone = subzone,
+    detection = "GetZoneText/GetSubZoneText", reason = reason,
+  }, { silent = true })
+  locationLastKey = key
+  locationLastEmitAt = clock
+end
+
 function readProfessions()
   local list = {}
   local method = "unavailable"
 
   if GetProfessions and GetProfessionInfo then
-    local p1, p2, _arch, fish, cook, firstAid = safeCall(GetProfessions)
+    -- Forever's installed professions UI uses slot 3 for First Aid.
+    local p1, p2, firstAid, fish, cook = safeCall(GetProfessions)
     local function add(idx, kind)
       if not idx then
         return
       end
       local name, _icon, rank, maxRank = safeCall(GetProfessionInfo, idx)
-      if name and rank ~= nil then
+      rank, maxRank = plainNumber(rank), plainNumber(maxRank)
+      if isPlainString(name) and rank and maxRank and rank >= 0 and rank <= maxRank and maxRank > 0 and rank == math.floor(rank) and maxRank == math.floor(maxRank) then
         list[#list + 1] = {
           name = name,
           rank = rank or 0,
           max_rank = maxRank or 0,
-          kind = kind,
+          kind = kind == "first_aid" and name ~= "First Aid" and "secondary" or kind,
         }
       end
     end
@@ -31,7 +118,7 @@ function readProfessions()
   end
 
   if #list == 0 and GetNumSkillLines and GetSkillLineInfo then
-    local n = safeCall(GetNumSkillLines) or 0
+    local n = plainNumber(safeCall(GetNumSkillLines)) or 0
     local section = nil
     for i = 1, n do
       local name, header, _, rank, _, _, maxRank = safeCall(GetSkillLineInfo, i)
@@ -43,7 +130,7 @@ function readProfessions()
         else
           section = nil
         end
-      elseif section and name and type(rank) == "number" and type(maxRank) == "number" and maxRank > 0 then
+      elseif section and isPlainString(name) and plainNumber(rank) and plainNumber(maxRank) and rank >= 0 and rank <= maxRank and maxRank > 0 then
         list[#list + 1] = {
           name = name,
           rank = rank,
@@ -69,232 +156,71 @@ function professionsKey(list)
   return table.concat(parts, "|")
 end
 
--- Optional /fl craftprobe: listen for craft/gather chat without enqueueing events.
-craftProbeFrame = nil
-craftProbeHits = nil
-craftProbeStopAt = 0
-
-function craftProbeIsSelfMessage(msg)
-  if not isPlainString(msg) or msg == "" then
-    return false
-  end
-  local lower = string.lower(msg)
-  if string.find(lower, "^you[%s']") or string.find(lower, "^your%s") then
-    return true
-  end
-  local function namePrefixMatch(name)
-    if not name or name == "" then
-      return false
-    end
-    local n = string.lower(name)
-    if string.sub(lower, 1, #n) ~= n then
-      return false
-    end
-    local nextChar = string.sub(lower, #n + 1, #n + 1)
-    return nextChar == "" or nextChar == " " or nextChar == "-" or nextChar == "'"
-  end
-  -- Match the played full name only (never bare first name).
-  return namePrefixMatch(splitNameRealm("player"))
-end
-
-function craftProbeApiSnapshot()
-  local hasCTrade = C_TradeSkillUI ~= nil
-  return {
-    GetProfessions = GetProfessions ~= nil,
-    GetProfessionInfo = GetProfessionInfo ~= nil,
-    GetSkillLineInfo = GetSkillLineInfo ~= nil,
-    GetNumSkillLines = GetNumSkillLines ~= nil,
-    GetNumTradeSkills = GetNumTradeSkills ~= nil,
-    GetTradeSkillInfo = GetTradeSkillInfo ~= nil,
-    GetTradeSkillItemLink = GetTradeSkillItemLink ~= nil,
-    GetTradeSkillNumReagents = GetTradeSkillNumReagents ~= nil,
-    C_TradeSkillUI = hasCTrade,
-    C_TradeSkillUI_GetAllRecipeIDs = hasCTrade and C_TradeSkillUI.GetAllRecipeIDs ~= nil,
-    C_TradeSkillUI_GetRecipeInfo = hasCTrade and C_TradeSkillUI.GetRecipeInfo ~= nil,
-    C_TradeSkillUI_CraftRecipe = hasCTrade and C_TradeSkillUI.CraftRecipe ~= nil,
-  }
-end
-
-function stopCraftProbe(reason)
-  if craftProbeFrame then
-    craftProbeFrame:SetScript("OnEvent", nil)
-    craftProbeFrame:SetScript("OnUpdate", nil)
-    craftProbeFrame:UnregisterAllEvents()
-  end
-  craftProbeStopAt = 0
-  local apis = craftProbeApiSnapshot()
-  local hits = craftProbeHits or {}
-  ForeverLANDB = ForeverLANDB or {}
-  ForeverLANDB.craftProbe = {
-    ts = now(),
-    reason = reason or "done",
-    version = ADDON_VERSION,
-    apis = apis,
-    hits = hits,
-    hit_count = #hits,
-  }
-  print(string.format(
-    "[ForeverLAN] craftprobe %s - %d chat hits (stored in SavedVariables; Push LAN to write disk)",
-    tostring(reason or "done"),
-    #hits
-  ))
-  if #hits == 0 then
-    print("  No craft/gather lines seen. Try again while crafting or gathering.")
-  end
-  craftProbeHits = nil
-end
-
-function startCraftProbe(seconds)
-  seconds = tonumber(seconds) or 90
-  if seconds < 15 then seconds = 15 end
-  if seconds > 300 then seconds = 300 end
-
-  local apis = craftProbeApiSnapshot()
-  print("[ForeverLAN] craftprobe - listening only (does not enqueue events)")
-  print(string.format(
-    "  GetProfessions=%s GetProfessionInfo=%s GetSkillLineInfo=%s",
-    tostring(apis.GetProfessions),
-    tostring(apis.GetProfessionInfo),
-    tostring(apis.GetSkillLineInfo)
-  ))
-  print(string.format(
-    "  GetNumTradeSkills=%s GetTradeSkillInfo=%s C_TradeSkillUI=%s",
-    tostring(apis.GetNumTradeSkills),
-    tostring(apis.GetTradeSkillInfo),
-    tostring(apis.C_TradeSkillUI)
-  ))
-  if apis.C_TradeSkillUI then
-    print(string.format(
-      "  C_TradeSkillUI GetAllRecipeIDs=%s GetRecipeInfo=%s CraftRecipe=%s",
-      tostring(apis.C_TradeSkillUI_GetAllRecipeIDs),
-      tostring(apis.C_TradeSkillUI_GetRecipeInfo),
-      tostring(apis.C_TradeSkillUI_CraftRecipe)
-    ))
-  end
-
-  craftProbeHits = {}
-  if not craftProbeFrame then
-    craftProbeFrame = CreateFrame("Frame", "ForeverLANCraftProbe")
-  end
-  craftProbeFrame:UnregisterAllEvents()
-  local listen = {
-    "CHAT_MSG_SKILL",
-    "CHAT_MSG_LOOT",
-    "CHAT_MSG_SYSTEM",
-    "CHAT_MSG_TRADESKILLS",
-    "CHAT_MSG_OPENING",
-    "UNIT_SPELLCAST_SUCCEEDED",
-  }
-  for _, ev in ipairs(listen) do
-    pcall(function()
-      craftProbeFrame:RegisterEvent(ev)
-    end)
-  end
-  craftProbeFrame:SetScript("OnEvent", function(_, event, ...)
-    local a1, a2, a3 = ...
-    local msg
-    if event == "UNIT_SPELLCAST_SUCCEEDED" then
-      if a1 ~= "player" then
-        return
-      end
-      msg = string.format("unit=%s spell=%s", tostring(a1), tostring(a3 or a2))
-    else
-      -- Skip secret system/loot chat (same Forever taint path as combat-log watcher).
-      if not isPlainString(a1) then
-        return
-      end
-      msg = a1
-      -- Forever TRADESKILLS chat is zone-wide ("Name creates Item.") - keep self only.
-      if not craftProbeIsSelfMessage(msg) then
-        return
-      end
-      if event == "CHAT_MSG_LOOT" or event == "CHAT_MSG_SYSTEM" then
-        local lower = string.lower(msg)
-        local interesting =
-          string.find(lower, "creat", 1, true)
-          or string.find(lower, "receiv", 1, true)
-          or string.find(lower, "skill", 1, true)
-          or string.find(lower, "gather", 1, true)
-          or string.find(lower, "herb", 1, true)
-          or string.find(lower, "mine", 1, true)
-          or string.find(lower, "skin", 1, true)
-          or string.find(lower, "craft", 1, true)
-          or string.find(lower, "smelt", 1, true)
-          or string.find(lower, "cook", 1, true)
-        if not interesting then
-          return
-        end
-      end
-    end
-    if #msg > 220 then
-      msg = string.sub(msg, 1, 220) .. "..."
-    end
-    print("|cff66ff66[ForeverLAN] craftprobe HIT:|r " .. event .. " | " .. msg)
-    if craftProbeHits then
-      craftProbeHits[#craftProbeHits + 1] = {
-        ts = now(),
-        event = event,
-        msg = msg,
-        self_only = true,
-      }
-    end
-  end)
-
-  craftProbeStopAt = (GetTime and GetTime() or 0) + seconds
-  if C_Timer and C_Timer.After then
-    C_Timer.After(seconds, function()
-      if craftProbeHits then
-        stopCraftProbe("timer")
-      end
-    end)
-  else
-    craftProbeFrame:SetScript("OnUpdate", function(self)
-      if not craftProbeHits then
-        self:SetScript("OnUpdate", nil)
-        return
-      end
-      if (GetTime and GetTime() or 0) >= craftProbeStopAt then
-        self:SetScript("OnUpdate", nil)
-        stopCraftProbe("timer")
-      end
-    end)
-  end
-  chat(string.format(
-    "Craft probe on for %ds - craft or gather now. |cffffffff/fl craftprobe stop|r to finish.",
-    seconds
-  ))
-end
-
 --- Lifetime completed quests (self) + in-log counts.
 function readQuestProgress()
-  local completed = 0
+  local completed = nil
+  local completedIDs = nil
   local method = "unavailable"
 
   if GetQuestsCompleted then
-    local t = safeCall(GetQuestsCompleted)
+    -- Classic variants may fill a supplied table instead of returning one.
+    local supplied = {}
+    local ok, t = pcall(GetQuestsCompleted, supplied)
+    if ok and t == nil then t = supplied end
     if type(t) == "table" then
-      for _ in pairs(t) do
-        completed = completed + 1
+      completedIDs = {}
+      for id, done in pairs(t) do
+        if plainNumber(id) and id > 0 and not (issecretvalue and issecretvalue(done)) and (done == true or done == 1) then completedIDs[id] = true end
       end
       method = "GetQuestsCompleted"
     end
-  elseif C_QuestLog and C_QuestLog.GetAllCompletedQuestIDs then
+  end
+  if not completedIDs and C_QuestLog and C_QuestLog.GetAllCompletedQuestIDs then
     local ids = safeCall(C_QuestLog.GetAllCompletedQuestIDs)
     if type(ids) == "table" then
-      completed = #ids
+      completedIDs = {}
+      for _, id in ipairs(ids) do
+        if plainNumber(id) and id > 0 then completedIDs[id] = true end
+      end
       method = "C_QuestLog.GetAllCompletedQuestIDs"
     end
   end
 
-  local inLog, ready = 0, 0
+  if completedIDs then
+    completed = 0
+    for _ in pairs(completedIDs) do completed = completed + 1 end
+  end
+  local inLog, ready = nil, nil
   if GetNumQuestLogEntries and GetQuestLogTitle then
-    local n = safeCall(GetNumQuestLogEntries) or 0
+    local n = plainNumber(safeCall(GetNumQuestLogEntries))
+    if n and n >= 0 then inLog, ready = 0, 0 end
+    n = n or 0
     for i = 1, n do
       local title, _level, _sg, isHeader, _col, isComplete = safeCall(GetQuestLogTitle, i)
-      if title and not isHeader then
+      if isPlainString(title) and not isHeader then
         inLog = inLog + 1
-        if isComplete then
+        if not (issecretvalue and issecretvalue(isComplete)) and (isComplete == true or isComplete == 1) then
           ready = ready + 1
+        end
+      end
+    end
+  end
+  -- The installed Forever quest UI uses this namespaced log API. Completion
+  -- history remains a separate guarded probe; a ready quest is not a turn-in.
+  if inLog == nil and C_QuestLog and C_QuestLog.GetNumQuestLogEntries and C_QuestLog.GetInfo then
+    local n = plainNumber(safeCall(C_QuestLog.GetNumQuestLogEntries))
+    if n and n >= 0 then
+      inLog = 0
+      ready = C_QuestLog.IsComplete and 0 or nil
+      for i = 1, n do
+        local info = safeCall(C_QuestLog.GetInfo, i)
+        if type(info) == "table" and isPlainString(info.title) and not info.isHeader then
+          inLog = inLog + 1
+          if ready ~= nil then
+            local complete = safeCall(C_QuestLog.IsComplete, info.questID)
+            if complete == nil or (issecretvalue and issecretvalue(complete)) then ready = nil
+            elseif complete == true then ready = ready + 1 end
+          end
         end
       end
     end
@@ -302,10 +228,43 @@ function readQuestProgress()
 
   return {
     completed = completed,
+    completed_ids = completedIDs,
     in_log = inLog,
     ready_to_turn_in = ready,
     method = method,
   }
+end
+
+-- Aggregate newly observed completion IDs. Login is a baseline, never a burst
+-- of lifetime quests. Missing APIs break continuity instead of guessing.
+questObservation = { previous = nil, key = nil, emitted_at = nil }
+function observeQuestProgress(progress, reason, force)
+  local ids = progress.completed_ids
+  if not ids then questObservation.previous = nil; return end
+  local db = charStore()
+  if not db.quest_tracker or db.quest_tracker.guid ~= playerGUID then
+    db.quest_tracker = { guid = playerGUID, key = (playerGUID or "player") .. ":quests:" .. tostring(now()), observed = 0 }
+    questObservation.previous = nil
+  end
+  local tracker = db.quest_tracker
+  if questObservation.previous then
+    for id in pairs(ids) do
+      if not questObservation.previous[id] then tracker.observed = tracker.observed + 1 end
+    end
+  end
+  questObservation.previous = ids
+  local key = tostring(tracker.observed) .. ":" .. tostring(progress.in_log) .. ":" .. tostring(progress.ready_to_turn_in)
+  local clock = GetTime()
+  if key == questObservation.key then return end
+  if not force and questObservation.emitted_at and clock - questObservation.emitted_at < 30 then return end
+  local snap = snapshotUnit("player", {}) or {}
+  enqueue("PLAYER_QUEST_PROGRESS", {
+    guid = snap.guid, character = snap.character, realm = snap.realm, class = snap.class,
+    is_self = true, quests_observed = tracker.observed, quest_tracker = tracker.key,
+    quests_in_log = progress.in_log, quests_ready = progress.ready_to_turn_in,
+    detection = progress.method, reason = reason,
+  }, { silent = true })
+  questObservation.key, questObservation.emitted_at = key, clock
 end
 
 function isFoodBuffName(name)
@@ -525,12 +484,14 @@ function emitSelfTelemetry(reason, opts)
     end
   end
   selfTelemetryGate.lastAt = t
+  observePlayerXP(reason, reason == "login")
+  observePlayerLocation(reason, reason == "login")
   local snap = snapshotUnit("player", {}) or {}
   local silent = opts.silent ~= false
 
   local professions, profMethod = readProfessions()
   local pk = professionsKey(professions)
-  if pk ~= lastProfKey and (#professions > 0 or lastProfKey ~= nil) then
+  if profMethod ~= "unavailable" and pk ~= lastProfKey and (#professions > 0 or lastProfKey ~= nil) then
     lastProfKey = pk
     enqueue("PLAYER_PROFESSIONS", {
       character = snap.character,
@@ -546,10 +507,11 @@ function emitSelfTelemetry(reason, opts)
   end
 
   local quests = readQuestProgress()
-  if lastQuestCompleted == nil or quests.completed ~= lastQuestCompleted then
+  observeQuestProgress(quests, reason, reason == "login")
+  if quests.completed ~= nil and (lastQuestCompleted == nil or quests.completed ~= lastQuestCompleted) then
     local prev = lastQuestCompleted
     lastQuestCompleted = quests.completed
-    if prev ~= nil or quests.completed > 0 or quests.in_log > 0 then
+    if prev ~= nil or quests.completed > 0 or (quests.in_log or 0) > 0 then
       enqueue("PLAYER_QUESTS", {
         character = snap.character,
         realm = snap.realm,

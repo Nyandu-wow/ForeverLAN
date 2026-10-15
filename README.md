@@ -1,4 +1,4 @@
-# Forever LAN
+﻿# Forever LAN
 
 **Summary:** Saves your character's LAN-party events to local SavedVariables only — the addon never connects to the Internet.
 

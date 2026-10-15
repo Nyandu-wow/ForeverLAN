@@ -350,6 +350,14 @@ ui.printStatus = function()
     pinStatusLine(),
     combatLogStatusLabel()
   ))
+  local xp = readPlayerXP and readPlayerXP()
+  if xp then
+    chat(string.format("XP bar: %d/%d at L%d (Logged snapshot — not XP/hour)", xp.xp, xp.maximum, xp.level))
+  end
+  local subzone = safeCall(GetSubZoneText)
+  if isPlainString(subzone) and subzone ~= "" then
+    chat("Subzone: " .. subzone)
+  end
 end
 
 function ForeverLAN_OnAddonCompartmentClick()

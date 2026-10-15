@@ -47,7 +47,7 @@ _G.ForeverLAN_Env = env
 setfenv(1, env)
 
 ADDON_NAME = addonName
-ADDON_VERSION = "0.1.72"
+ADDON_VERSION = "0.1.75"
 SV_SCHEMA = 3
 -- Optional friend-pack inject (ForeverLAN_Party.lua). CurseForge ships empty.
 BUILTIN_ROSTER = (ForeverLAN_Party and ForeverLAN_Party.roster) or {}
@@ -56,12 +56,15 @@ PREFIX = "FOREVERLAN_CLIP|"
 MAX_PENDING = 1500
 -- Prefer dropping these when the queue is full.
 DROP_UNDER_PRESSURE = {
+  PLAYER_XP_SNAPSHOT = true,
+  PLAYER_LOCATION = true,
   PLAYER_DISTANCE = true,
   PLAYER_FOOD_BUFF = true,
   PLAYER_MAP_OPENED = true,
   PLAYER_POWER_STATS = true,
   PLAYER_MONEY = true,
   PLAYER_QUESTS = true,
+  PLAYER_QUEST_PROGRESS = true,
   PLAYER_PROFESSIONS = true,
   PLAYER_COMBAT_TIME = true,
   PLAYER_CRAFT = true,
@@ -71,6 +74,9 @@ DROP_UNDER_PRESSURE = {
 }
 -- Keep one pending row per type+guid (+ map_kind). Crafts stay one-per-action.
 COALESCE_PENDING = {
+  PLAYER_QUEST_PROGRESS = true,
+  PLAYER_XP_SNAPSHOT = true,
+  PLAYER_LOCATION = true,
   PLAYER_DISTANCE = true,
   PLAYER_FOOD_BUFF = true,
   PLAYER_MAP_OPENED = true,

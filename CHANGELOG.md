@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.75
+
+- Client stamp: Forever beta **1.60.1.70374** (Oct 13–15). No new Kaivax gameplay notes since Oct 8; Interface stays **16001** (matches ClassicUIForever + SavedVariables `toc_version`)
+- Coalesce PLAYER_LOCATION pending rows (with XP snapshots) under queue pressure
+- Keep `craftProbeIsSelfMessage` for `CHAT_MSG_TRADESKILLS` → `PLAYER_CRAFT` (self vs other-player filter). Optional `/fl craftprobe` diagnostic stays unwired; the self-message helper is not dead code.
+
+## 0.1.74
+
+- PLAYER_XP_SNAPSHOT: observed XP / max / session-observed gain from UnitXP (no invented XP/hour)
+- PLAYER_LOCATION: zone + subzone snapshots (bounded so zone-border flicker does not spam)
+- Host: observation pipeline + Live “Weekend Adventures” party goals / journals (Counted from existing events)
+
+## 0.1.73
+
+- Instance enter/leave events include zone; host Live/Wrap surface dungeons (Dalaran, dungeon deaths, lookback)
+- Honesty: Live hero says "IN DUNGEON" (not invented XP)
+
 ## 0.1.72
 
 - Push summary survives reload: saved to CharDB, printed in chat ~1s after UI comes back (pre-reload chat was wiped by ReloadUI)

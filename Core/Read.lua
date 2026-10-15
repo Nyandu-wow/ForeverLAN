@@ -10,12 +10,14 @@ function safeCall(fn, ...)
   if not fn then
     return nil
   end
-  local results = { pcall(fn, ...) }
-  local ok = table.remove(results, 1)
-  if not ok then
+  local function pack(...) return { n = select("#", ...), ... } end
+  local results = pack(pcall(fn, ...))
+  if not results[1] then
     return nil
   end
-  return unpack(results)
+  -- Profession slots and quest tuples contain nil holes. Lua's #table cannot
+  -- retain their return arity; preserve every slot following the success flag.
+  return unpack(results, 2, results.n)
 end
 
 --- Single read door for Forever APIs. Call sites should not touch Unit*/C_Map raw.

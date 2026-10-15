@@ -624,6 +624,7 @@ function checkPlayerInstanceTransition()
       class = snap and snap.class or "",
       guid = snap and snap.guid or "",
       level = snap and snap.level or 0,
+      zone = snap and snap.zone or "",
       instance_name = instanceName,
       instance_type = instanceType,
       difficulty_name = difficultyName,
@@ -637,6 +638,7 @@ function checkPlayerInstanceTransition()
       class = snap and snap.class or "",
       guid = snap and snap.guid or "",
       level = snap and snap.level or 0,
+      zone = snap and snap.zone or "",
       instance_name = lastInstanceName,
       is_self = true,
     })

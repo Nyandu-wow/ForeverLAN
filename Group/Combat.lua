@@ -94,6 +94,34 @@ function handleLootChat(msg)
   })
 end
 
+--- True when tradeskill chat is about the local player (not a nearby crafter).
+--- Used by PLAYER_CRAFT; do not delete without replacing this call site.
+function craftProbeIsSelfMessage(msg)
+  -- Forever may deliver secret chat strings; never tostring/compare those.
+  if not isPlainString(msg) or msg == "" then
+    return false
+  end
+  local lower = string.lower(msg)
+  -- English self lines: "You create…", "Your skill in…"
+  if string.find(lower, "^you[%s']") or string.find(lower, "^your%s") then
+    return true
+  end
+  local function namePrefixMatch(name)
+    if not name or name == "" then
+      return false
+    end
+    local n = string.lower(name)
+    if string.sub(lower, 1, #n) ~= n then
+      return false
+    end
+    local nextChar = string.sub(lower, #n + 1, #n + 1)
+    return nextChar == "" or nextChar == " " or nextChar == "-" or nextChar == "'"
+  end
+  -- Forever TRADESKILLS uses full names. Match the played full name only
+  -- (never bare first name — Forever identity is First Last).
+  return namePrefixMatch(splitNameRealm("player"))
+end
+
 --- Forever zone-wide craft chat: "Name creates Item." Self only -> PLAYER_CRAFT.
 function handleTradeskillChat(msg)
   -- Skip secret chat text (Forever SecretValues); comparing it throws while tainted.

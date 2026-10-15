@@ -1,13 +1,62 @@
-# Local companion stack + secrets (not published)
+# =============================================================================
+# Public GitHub / CurseForge = WoW addon only (generic).
+# Everything below stays on the host machine — never publish.
+# =============================================================================
+
+# Local companion stack (dashboard, collector, packs, tunnel)
 lan/
+cloudflare/
+**/.cloudflared/
+host/
+collector/
+friend-client/
+friend-pack/
+simulator/
+scripts/
+lib/
+docs/
+host-agent.mjs
+run.mjs
+package.json
+package-lock.json
+config.json
+config.example.json
+config.*.example.json
+curseforge.json
+curseforge.example.json
+.env
+.env.*
+!.env.example
+
+# Machine / desktop only
+*-Mrice-DSKTP*
+*Mrice-DSKTP*
 .cursor/
 .cache/
 phase1/
+phase1.zip
+phase1 (2).zip
 
-# Release artifacts
+# Build / runtime / secrets
+dist/
+data/
+backups/
 *.zip
+**/outbox.jsonl
+**/collector-state.json
+**/addon-ack.json
+**/foreverlan.sqlite
+**/host-events.jsonl
+**/ingest.log
+**/lan-state.json
+**/tmp-*.json
+**/tmp-*.lua
+**/party.json
+!party.example.json
+!**/party.example.json
+node_modules/
 
-# OS
+# OS / editor
 .DS_Store
 Thumbs.db
 Desktop.ini
