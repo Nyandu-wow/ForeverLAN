@@ -28,9 +28,8 @@ curseforge.example.json
 .env.*
 !.env.example
 
-# Machine / desktop only
-*-Mrice-DSKTP*
-*Mrice-DSKTP*
+# Machine / desktop only (Cursor duplicate rule copies, etc.)
+*-DSKTP*
 .cursor/
 .cache/
 phase1/
