@@ -1,0 +1,183 @@
+setfenv(1, ForeverLAN_Env)
+
+function closeCombatSegment()
+  if not combat.entered_at then
+    return
+  end
+  local delta = GetTime() - combat.entered_at
+  if delta > 0 and delta < 3600 then
+    combat.seconds = combat.seconds + delta
+  end
+  combat.entered_at = nil
+end
+
+function emitCombatTime(reason, silent)
+  closeCombatSegment()
+  if combat.seconds <= (combat.emitted or 0) and reason ~= "force" then
+    return
+  end
+  if combat.seconds <= 0 then
+    return
+  end
+  combat.emitted = combat.seconds
+  local snap = snapshotUnit("player", {})
+  enqueue("PLAYER_COMBAT_TIME", {
+    character = snap and snap.character or UnitName("player") or "",
+    realm = snap and snap.realm or "",
+    class = snap and snap.class or "",
+    guid = snap and snap.guid or playerGUID or "",
+    level = snap and snap.level or UnitLevel("player") or 0,
+    is_self = true,
+    combat_seconds = math.floor(combat.seconds + 0.5),
+    reason = reason or "tick",
+  }, { silent = silent ~= false })
+end
+
+function qualityFromLootColor(color)
+  if type(color) ~= "string" then
+    return nil
+  end
+  local c = string.lower(color)
+  -- Classic item link colors (with alpha prefix ff)
+  if c == "ffa335ee" or c == "a335ee" then
+    return 4
+  end
+  if c == "ff0070dd" or c == "0070dd" then
+    return 3
+  end
+  return nil
+end
+
+function handleLootChat(msg)
+  -- Same secret-string path as combat-log / tradeskill chat (party combat).
+  if not isPlainString(msg) or msg == "" then
+    return
+  end
+  if not (string.find(msg, "^You receive loot:") or string.find(msg, "^You receive item:")) then
+    return
+  end
+  -- Item hyperlinks are valid independently of their outer colour escape.
+  -- Clients can use either legacy |cff... or named |cnIQ4: colours.
+  local link = string.match(msg, "|Hitem:.-|h.-|h")
+  if not link then
+    return
+  end
+  local itemName, quality
+  local getInfo = GetItemInfo or (C_Item and C_Item.GetItemInfo)
+  if type(getInfo) == "function" then
+    local ok, name, _, q = pcall(getInfo, link)
+    if ok then
+      if isPlainString(name) then itemName = name end
+      if isPlainNumber(q) then quality = q end
+    end
+  end
+  if not itemName then
+    itemName = string.match(link, "%[(.-)%]")
+  end
+  if type(quality) ~= "number" then
+    local color = string.match(msg, "|c(%x%x%x%x%x%x%x%x)|Hitem:")
+    quality = qualityFromLootColor(color)
+    if not quality then
+      quality = tonumber(string.match(msg, "|cnIQ(%d+):|Hitem:"))
+    end
+  end
+  if quality ~= 3 and quality ~= 4 then
+    return
+  end
+  local snap = snapshotUnit("player", {})
+  local eventType = quality == 4 and "PLAYER_LOOT_EPIC" or "PLAYER_LOOT_RARE"
+  local itemId = nil
+  local idStr = string.match(link, "item:(%d+)")
+  if idStr then
+    itemId = tonumber(idStr)
+  end
+  enqueue(eventType, {
+    character = snap and snap.character or UnitName("player") or "",
+    realm = snap and snap.realm or "",
+    class = snap and snap.class or "",
+    guid = snap and snap.guid or playerGUID or "",
+    level = snap and snap.level or UnitLevel("player") or 0,
+    zone = snap and snap.zone or "",
+    is_self = true,
+    item_name = itemName or "item",
+    item_link = link,
+    item_id = itemId,
+    item_quality = quality,
+    detection = "CHAT_MSG_LOOT",
+  })
+end
+
+--- True when tradeskill chat is about the local player (not a nearby crafter).
+--- Used by PLAYER_CRAFT; do not delete without replacing this call site.
+function craftProbeIsSelfMessage(msg)
+  -- Forever may deliver secret chat strings; never tostring/compare those.
+  if not isPlainString(msg) or msg == "" then
+    return false
+  end
+  local lower = string.lower(msg)
+  -- English self lines: "You create…", "Your skill in…"
+  if string.find(lower, "^you[%s']") or string.find(lower, "^your%s") then
+    return true
+  end
+  local function namePrefixMatch(name)
+    if not name or name == "" then
+      return false
+    end
+    local n = string.lower(name)
+    if string.sub(lower, 1, #n) ~= n then
+      return false
+    end
+    local nextChar = string.sub(lower, #n + 1, #n + 1)
+    return nextChar == "" or nextChar == " " or nextChar == "-" or nextChar == "'"
+  end
+  -- Forever TRADESKILLS uses full names. Match the played full name only
+  -- (never bare first name — Forever identity is First Last).
+  return namePrefixMatch(splitNameRealm("player"))
+end
+
+--- Forever zone-wide craft chat: "Name creates Item." Self only -> PLAYER_CRAFT.
+function handleTradeskillChat(msg)
+  -- Skip secret chat text (Forever SecretValues); comparing it throws while tainted.
+  if not isPlainString(msg) or msg == "" then
+    return
+  end
+  if not craftProbeIsSelfMessage(msg) then
+    return
+  end
+  local item =
+    string.match(msg, "^[Yy]ou create[sd]?%s+(.+)$")
+    or string.match(msg, "^.- creates?%s+(.+)$")
+  if not item then
+    return
+  end
+  item = string.gsub(item, "%s+$", "")
+  item = string.gsub(item, "%.$", "")
+  -- Strip item links to plain name when present
+  local linked = string.match(item, "|h%[(.-)%]|h")
+  if linked then
+    item = linked
+  end
+  if item == "" then
+    return
+  end
+  local qty = 1
+  local q, rest = string.match(item, "^(%d+)[xX]%s+(.+)$")
+  if q and rest then
+    qty = tonumber(q) or 1
+    item = rest
+  end
+  local snap = snapshotUnit("player", {})
+  enqueue("PLAYER_CRAFT", {
+    character = snap and snap.character or UnitName("player") or "",
+    realm = snap and snap.realm or "",
+    class = snap and snap.class or "",
+    guid = snap and snap.guid or playerGUID or "",
+    level = snap and snap.level or UnitLevel("player") or 0,
+    zone = snap and snap.zone or "",
+    is_self = true,
+    action = "create",
+    item_name = item,
+    quantity = qty,
+    detection = "CHAT_MSG_TRADESKILLS",
+  }, { silent = true })
+end

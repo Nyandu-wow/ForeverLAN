@@ -1,0 +1,12 @@
+﻿package-as: ForeverLAN
+
+ignore:
+  - public-countdown
+  - lan
+  - .cursor
+  - .cache
+  - .github
+  - tests
+  - phase1
+  - "*.zip"
+  - NOTICE

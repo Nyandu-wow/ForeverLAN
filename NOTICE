@@ -1,0 +1,14 @@
+Forever LAN — third-party notices
+=================================
+
+Original Forever LAN code is **All Rights Reserved** (see `LICENSE`).
+That does **not** cover Blizzard Entertainment content.
+
+Blizzard-owned material (not Forever LAN)
+-----------------------------------------
+- World of Warcraft names, UI, and game data
+Dashboard key art, zone stills, and map tiles used by the optional local companion
+board are Blizzard-derived and are not part of this public addon package.
+
+A public CurseForge / GitHub addon zip contains only the Lua/TOC/README/CHANGELOG/LICENSE
+(no map art, no companion host).
