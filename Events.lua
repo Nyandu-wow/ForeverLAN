@@ -73,10 +73,15 @@ frame:RegisterEvent("UNIT_RANGED_ATTACK_POWER")
 frame:RegisterEvent("PLAYER_DAMAGE_DONE_MODS")
 frame:RegisterEvent("CHAT_MSG_LOOT")
 frame:RegisterEvent("CHAT_MSG_TRADESKILLS")
+pcall(frame.RegisterEvent, frame, "CHAT_MSG_COMBAT_HONOR_GAIN")
 frame:RegisterEvent("PLAYER_REGEN_DISABLED")
 frame:RegisterEvent("PLAYER_REGEN_ENABLED")
 
 frame:SetScript("OnEvent", function(_, event, ...)
+  if event == "CHAT_MSG_COMBAT_HONOR_GAIN" then
+    handleHonorCredit(select(1, ...), select(11, ...))
+    return
+  end
   if event == "PLAYER_XP_UPDATE" then
     local unit = ...
     if unit == nil or unit == "player" then
@@ -107,6 +112,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
     rebuildRosterIndex()
     ForeverLANDB.positionProbe = nil
     bindActiveCharacter()
+    retireHostReceipts()
     trimPendingOverCap()
     rebuildPendingIndex()
     -- After Push LAN, keep export briefly so the collector can read the SV write.
@@ -451,19 +457,19 @@ SlashCmdList.FOREVERLAN = function(msg)
     ui.printHelp()
   elseif cmd == "hide" then
     setSetting("show_push_button", false)
-    chat("FL pin hidden - /fl show")
+    chat("FL button hidden. Type |cffffffff/fl show|r to bring it back.")
   elseif cmd == "show" then
     setSetting("show_push_button", true)
     if enteredWorld and ui.dock then
       ui.dock:Show()
     end
-    chat("FL pin shown")
+    chat("FL button shown. Left-click it to save your adventure log.")
   elseif cmd == "lock" then
     setSetting("lock_push_button", not setting("lock_push_button"))
-    chat(setting("lock_push_button") and "FL pin locked" or "FL pin unlocked - drag to move")
+    chat(setting("lock_push_button") and "FL button locked in place." or "FL button unlocked. Drag it wherever you like.")
   elseif cmd == "unlock" then
     setSetting("lock_push_button", false)
-    chat("FL pin unlocked - drag to move")
+    chat("FL button unlocked. Drag it wherever you like.")
   elseif cmd == "combatlog" or cmd == "cl" then
     requestCombatLogOnce()
   elseif cmd == "flush" or cmd == "push" then
@@ -471,23 +477,23 @@ SlashCmdList.FOREVERLAN = function(msg)
   elseif cmd == "remember" or cmd == "add" then
     local ok, info = rememberLanName(rest)
     if ok then
-      chat(string.format("LAN roster: %s |cffffffff%s|r", info, rest))
+      chat(string.format("Party list: %s |cffffffff%s|r", info, rest))
     else
       chat(info or "Could not remember name")
     end
   elseif cmd == "forget" or cmd == "remove" then
     local ok, info = forgetLanName(rest)
     if ok then
-      chat(string.format("LAN roster: %s |cffffffff%s|r", info, rest ~= "" and rest or "?"))
+      chat(string.format("Party list: %s |cffffffff%s|r", info, rest ~= "" and rest or "?"))
     else
       chat(info or "Could not forget name")
     end
   elseif cmd == "roster" then
     local list = rememberedRosterList()
     if #list == 0 then
-      chat("Remembered LAN names: (none) - |cffffffff/fl remember First Last|r")
+      chat("Your party list is empty. Add a friend with |cffffffff/fl remember First Last|r.")
     else
-      chat("Remembered LAN names:")
+      chat("Your party list:")
       for _, n in ipairs(list) do
         print("  " .. n)
       end
@@ -495,7 +501,7 @@ SlashCmdList.FOREVERLAN = function(msg)
     emitPartyRoster("slash")
   elseif cmd == "quiet" then
     setSetting("announce_events", not setting("announce_events"))
-    chat("Chat pings " .. (setting("announce_events") and "on" or "off"))
+    chat("Adventure announcements " .. (setting("announce_events") and "on." or "off."))
   else
     ui.printHelp()
   end

@@ -113,15 +113,15 @@ class QueueTests(unittest.TestCase):
         self.assertEqual([row["subzone"] for row in exported(env)],
                          ["Goldshire", "Lion's Pride Inn", "Goldshire"])
 
-    def test_saved_high_signal_rows_do_not_lose_priority_under_cap_pressure(self):
+    def test_saved_high_signal_and_new_crafts_both_survive_pressure(self):
         lua, env = boot()
         high = event(lua, env, "PLAYER_DIED")
         env.saveForCollector()
         for _ in range(env.MAX_PENDING):
             event(lua, env)
-        self.assertEqual(len(env.pending), env.MAX_PENDING)
+        self.assertEqual(len(env.pending), env.MAX_PENDING + 1)
         self.assertEqual(env.pending[1].id, high.id)
-        self.assertEqual(env.charStore().dropped_total, 1)
+        self.assertEqual(env.charStore().dropped_total or 0, 0)
 
     def test_legacy_saved_timestamp_is_not_a_delivery_ack(self):
         lua, env = boot()

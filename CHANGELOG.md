@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.1.83
+
+- Record game-confirmed Honorable Kill chat credit separately from combat-log PvP kills. Saved cumulative counters survive reloads and do not add duplicate credit on replay. Bonus honor is excluded; tracking starts with this update.
+
+## 0.1.82
+
+- Clearer adventure-log chat, tooltips, help and status. Push reports new saved entries; saved history is explained separately from uploads.
+
+## 0.1.81
+
+- In-game adventure-log messages explain local saves and companion delivery in plain language. Push shows new entries; /fl status explains saved history separately.
+- Long hardcore leveling: reminder threshold 5000 (was 1500); softer Push/queue chat cadence.
+- Still never deletes queued observations for space.
+- Slightly calmer self/travel polling and distance/jump sampling; zone transitions still logged.
+
+## 0.1.80
+
+- Stop discarding observations when the local queue is large; 1500 is a Push reminder only.
+- Receipt-bridge cleanup left off (disk save ≠ host delivery).
+
 ## 0.1.78
 
 - Wait for a valid player GUID and name before emitting quest-progress snapshots, avoiding malformed observations around login/logout.

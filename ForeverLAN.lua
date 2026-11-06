@@ -47,14 +47,15 @@ _G.ForeverLAN_Env = env
 setfenv(1, env)
 
 ADDON_NAME = addonName
-ADDON_VERSION = "0.1.78"
+ADDON_VERSION = "0.1.83"
 SV_SCHEMA = 3
 -- Optional friend-pack inject (ForeverLAN_Party.lua). CurseForge ships empty.
 BUILTIN_ROSTER = (ForeverLAN_Party and ForeverLAN_Party.roster) or {}
 BUILTIN_ALIASES = (ForeverLAN_Party and ForeverLAN_Party.aliases) or {}
 PREFIX = "FOREVERLAN_CLIP|"
-MAX_PENDING = 1500
--- Prefer dropping these when the queue is full.
+-- Reminder only (no eviction). Sized for long hardcore leveling without Push spam.
+MAX_PENDING = 5000
+-- Legacy pressure classification, retained for compatibility; no automatic eviction.
 DROP_UNDER_PRESSURE = {
   PLAYER_XP_SNAPSHOT = true,
   PLAYER_LOCATION = true,
@@ -74,6 +75,7 @@ DROP_UNDER_PRESSURE = {
 }
 -- Keep one pending row per type+guid (+ map_kind). Crafts stay one-per-action.
 COALESCE_PENDING = {
+  PLAYER_HONORABLE_KILLS = true,
   PLAYER_QUEST_PROGRESS = true,
   PLAYER_XP_SNAPSHOT = true,
   PLAYER_DISTANCE = true,
@@ -88,13 +90,13 @@ COALESCE_PENDING = {
   WORLD_ENTER = true,
   POSITION_UPDATE = true,
 }
-ROSTER_POLL = 4.0
-SELF_POLL = 8.0
-TRAVEL_POLL = 2.0
+ROSTER_POLL = 5.0
+SELF_POLL = 10.0
+TRAVEL_POLL = 3.0
 MAX_STEP_YARDS = 80
 MIN_STEP_YARDS = 0.4
-DISTANCE_EMIT_YARDS = 120
-JUMP_EMIT_EVERY = 8
+DISTANCE_EMIT_YARDS = 200
+JUMP_EMIT_EVERY = 12
 
 SETTINGS_DEFAULTS = {
   show_push_button = true,

@@ -8,9 +8,9 @@ lastPushRemindAt = 0
 lastQueueCapRemindAt = 0
 lastCombatLogRemindAt = 0
 combatLogRemindCount = 0
-PUSH_REMIND_SEC = 720 -- 12 min between push nudges
-QUEUE_CAP_REMIND_SEC = 180 -- 3 min between queue-full nudges (gentler spam guard)
-QUEUE_SOFT_WARN = 1200 -- ~80% of MAX_PENDING
+PUSH_REMIND_SEC = 1200 -- 20 min between push nudges (marathon leveling)
+QUEUE_CAP_REMIND_SEC = 600 -- 10 min between high-unsaved nudges
+QUEUE_SOFT_WARN = 4000 -- ~80% of MAX_PENDING reminder threshold
 COMBATLOG_REMIND_SEC = 900 -- 15 min between combat-log nudges
 COMBATLOG_REMIND_MAX = 3 -- per session
 -- Set while Push LAN triggers C_UI.Reload so LOGOUT does not mark the board Offline.

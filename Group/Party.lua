@@ -552,6 +552,23 @@ function processMemberChanges(snap)
   }
 end
 
+-- Suppress duplicate callback bursts, not real membership/state transitions.
+-- Exclude only the sampling timestamp; position/state changes remain distinct.
+local lastRosterSignature, lastRosterSnapshotAt = nil, 0
+local function rosterSignature(value)
+  if type(value) ~= "table" then return jsonValue(value) end
+  local keys = {}
+  for key in pairs(value) do
+    if key ~= "ts" then keys[#keys + 1] = key end
+  end
+  table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+  local parts = {}
+  for _, key in ipairs(keys) do
+    parts[#parts + 1] = jsonValue(key) .. ":" .. rosterSignature(value[key])
+  end
+  return "{" .. table.concat(parts, ",") .. "}"
+end
+
 function emitPartyRoster(reason, opts)
   opts = opts or {}
   local members = collectGroupMembers({ withPosition = not opts.silentOnly })
@@ -579,6 +596,10 @@ function emitPartyRoster(reason, opts)
     emitPlaying(selfSnap)
   end
 
+  local signature = rosterSignature(syncMembers)
+  local stamp = now()
+  if signature == lastRosterSignature and stamp - lastRosterSnapshotAt < 2 then return end
+  lastRosterSignature, lastRosterSnapshotAt = signature, stamp
   enqueue("PARTY_ROSTER", {
     reason = reason or "poll",
     group_size = #members,

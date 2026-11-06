@@ -474,7 +474,7 @@ function bindActiveCharacter()
   if trimPendingOverCap then
     trimPendingOverCap()
   end
-  -- No collector acknowledgement exists: retain saved rows until queue pressure.
+  -- No collector acknowledgement exists: retain saved rows, including under pressure.
   if restorePersistedTotals then
     restorePersistedTotals()
   end

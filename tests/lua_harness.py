@@ -5,7 +5,7 @@ from lupa.lua51 import LuaRuntime
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def boot(saved=""):
+def boot(saved="", receipts=""):
     lua = LuaRuntime(unpack_returned_tuples=True)
     lua.execute(r'''
 clock = 1700000000
@@ -64,6 +64,8 @@ end
             lua.execute((ROOT / line.strip()).read_text(encoding="utf-8-sig"), "ForeverLAN")
             if line.strip() == "ForeverLAN.lua":
                 env = lua.globals().ForeverLAN_Env
+    if receipts:
+        lua.execute(receipts)
     env.frame.scripts.OnEvent(env.frame, "ADDON_LOADED", "ForeverLAN")
     return lua, env
 

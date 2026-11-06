@@ -1,9 +1,9 @@
 ## Interface: 16001
 ## AllowLoadGameType: camelot
 ## Title: Forever LAN
-## Notes: Local SavedVariables event log for a house LAN. FL = save to disk. Never connects online. /fl
+## Notes: Local SavedVariables adventure log for a house LAN. Click FL to save to disk; companion sends to the board. Never connects online. /fl
 ## Author: Forever LAN
-## Version: 0.1.78
+## Version: 0.1.83
 ## X-Category: Miscellaneous
 ## X-License: All Rights Reserved
 ## X-Website: https://github.com/Nyandu-wow/ForeverLAN
@@ -18,6 +18,7 @@ Core/Session.lua
 Core/Queue.lua
 Core/Read.lua
 Telemetry/Self.lua
+Telemetry/Honor.lua
 Group/Party.lua
 Group/Combat.lua
 UI/Pin.lua

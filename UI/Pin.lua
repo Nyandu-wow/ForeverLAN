@@ -31,19 +31,19 @@ end
 function pinStatusLine()
   local n = pendingCountForButton()
   if n > 0 then
-    return tostring(n) .. " not on disk - left-click Push"
+    return tostring(n) .. " new log entries - left-click to save"
   end
   local flushedAt = flushMeta().last_flush_at
   if flushedAt > 0 then
     if #pending > 0 and pendingFullyFlushedToDisk() then
-      return "saved to disk - collector sends when host is up"
+      return "Adventure log saved on this PC"
     end
-    return "saved to disk"
+    return "Your last save is safe on this PC"
   end
   if #pending > 0 then
-    return tostring(#pending) .. " queued - left-click Push"
+    return "Left-click to save your adventure log"
   end
-  return "queue empty"
+  return "Your next adventure awaits"
 end
 
 function inCombatNow()
@@ -76,11 +76,12 @@ function maybeRemindPush()
     return
   end
   local notable = pendingCountForButton()
-  if notable < 80 then
+  -- Hardcore sessions mint many small observations; only nudge once a lot is unsaved.
+  if notable < 200 then
     return
   end
   lastPushRemindAt = t
-  chat(string.format("%d unsaved - click |cffffffffFL|r (or logout).", notable))
+  chat(string.format("%d new entries in your adventure log. Click |cffffffffFL|r to save at your next break.", notable))
 end
 
 function maybeRemindCombatLog()
@@ -159,7 +160,9 @@ ui.dock:SetScript("OnEnter", function(self)
   GameTooltip:AddLine("Forever LAN", 0.7, 0.85, 1)
   GameTooltip:AddLine(pinStatusLine(), 1, 1, 1)
   GameTooltip:AddLine("Combat log: " .. combatLogStatusLabel(), 0.85, 0.85, 0.7)
-  GameTooltip:AddLine("Left: Push to disk - Right: /combatlog once", 0.65, 0.65, 0.65)
+  GameTooltip:AddLine("Left-click: save and reload your UI", 0.65, 0.65, 0.65)
+  GameTooltip:AddLine("Right-click: turn on combat logging", 0.65, 0.65, 0.65)
+  GameTooltip:AddLine("The companion sends saved progress to the board.", 0.65, 0.65, 0.65)
   GameTooltip:Show()
 end)
 ui.dock:SetScript("OnLeave", function()
@@ -252,7 +255,7 @@ function requestCombatLogOnce()
   if live == true then
     setCombatLogUiOn(true)
     combatSlashSent = true
-    chat("Combat log is on (LoggingCombat). Right-click ignored.")
+    chat("Combat logging is already on. You're ready to go.")
     if refreshCombatLogButton then
       refreshCombatLogButton()
     end
@@ -264,7 +267,7 @@ function requestCombatLogOnce()
     combatSlashSent = false
   elseif combatSlashSent and combatLogUiOn() then
     chat(
-      "Already sent /combatlog this session. If it's still off, type |cffffffff/combatlog|r once."
+      "Combat logging was already requested. If the game still shows it as off, type |cffffffff/combatlog|r once."
     )
     return
   end
@@ -272,22 +275,22 @@ function requestCombatLogOnce()
   local ok = sendCombatLogSlash()
   if not ok then
     combatLogClickPending = false
-    chat("Could not send from the pin - type |cffffffff/combatlog|r once yourself.")
+    chat("Couldn't turn on combat logging from FL. Type |cffffffff/combatlog|r once in chat.")
     return
   end
   combatSlashSent = true
   -- Do not mark ON until CHAT_MSG_SYSTEM (or LoggingCombat) confirms.
-  chat("Sent /combatlog - waiting for the game to confirm.")
+  chat("Turning on combat logging. Watch for the game's confirmation in chat.")
   if C_Timer and C_Timer.After then
     C_Timer.After(0.5, function()
       if isCombatLogging() == true then
         setCombatLogUiOn(true)
-        chat("Combat log on.")
+        chat("Combat logging is on. Ready for battle.")
       elseif ForeverLANDB and ForeverLANDB.combat_log_on then
-        chat("Combat log on (system message).")
+        chat("Combat logging is on. Ready for battle.")
       else
         chat(
-          "No combat-log confirm yet. If chat said nothing, type |cffffffff/combatlog|r once."
+          "The game hasn't confirmed combat logging yet. If it still shows off, type |cffffffff/combatlog|r once."
         )
       end
       finishCombatLogAttempt(1)
@@ -314,7 +317,7 @@ end)
 
 ui.positionMinimapButton = function() end
 ui.openOptionsPanel = function()
-  chat("No options panel - |cffffffff/fl|r for status, left-click FL to save.")
+  chat("Left-click |cffffffffFL|r to save your adventure log. Type |cffffffff/fl|r to check it.")
   return false
 end
 
@@ -334,27 +337,36 @@ ui.applyUiSettings = function()
 end
 
 ui.printHelp = function()
-  chat("|cffffffff/fl|r status | push | combatlog | roster | remember First Last | forget First Last")
+  chat("Left-click |cffffffffFL|r to save and reload. Right-click once to turn on combat logging.")
+  chat("|cffffffff/fl status|r - check your log. |cffffffff/fl push|r - save now.")
+  chat("Party list: |cffffffff/fl roster|r. Add or remove a name: |cffffffff/fl remember First Last|r / |cffffffff/fl forget First Last|r.")
 end
 
 ui.printStatus = function()
   local snap = snapshotUnit("player", {})
   local who = snap and snap.character or UnitName("player") or "?"
   chat(string.format(
-    "v%s - %s - queue %d - %s - combatlog %s",
+    "v%s - %s - combat logging: %s",
     ADDON_VERSION,
     who,
-    #pending,
-    pinStatusLine(),
     combatLogStatusLabel()
   ))
+  local unsaved, saved = summarizePendingForPush()
+  local honor = charStore().honor_tracker
+  if honor and honor.guid == (UnitGUID and UnitGUID("player")) then
+    chat(string.format("Honorable kills recorded: %d. These are kills the game awarded you credit for.", honor.observed))
+  elseif not isPlainString(COMBATLOG_HONORGAIN) then
+    chat("Honorable kill tracking isn't available from this client's honor messages.")
+  end
+  chat(string.format("Adventure log: %d new %s to save; %d saved %s kept on this PC.", unsaved, unsaved == 1 and "entry" or "entries", saved, saved == 1 and "entry" or "entries"))
+  chat("Saved entries may already be on the board. Check the companion window to see what's still waiting to send.")
   local xp = readPlayerXP and readPlayerXP()
   if xp then
-    chat(string.format("XP bar: %d/%d at L%d (Logged snapshot — not XP/hour)", xp.xp, xp.maximum, xp.level))
+    chat(string.format("Level %d - XP: %d / %d", xp.level, xp.xp, xp.maximum))
   end
   local subzone = safeCall(GetSubZoneText)
   if isPlainString(subzone) and subzone ~= "" then
-    chat("Subzone: " .. subzone)
+    chat("Adventuring in " .. subzone)
   end
 end
 

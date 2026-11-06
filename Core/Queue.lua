@@ -68,37 +68,19 @@ function buildExportString()
   return PREFIX .. jsonValue({ events = pending })
 end
 
--- Prefer dropping noisy telemetry over dings / deaths / login when the queue is full.
--- Returns how many events were dropped this call (0 if under cap).
+-- Preservation hotfix: the addon has no collector/host acknowledgement channel.
+-- Snapshot history and unsaved gameplay share this table. A hard cap on it can
+-- discard a brand-new observation immediately while keeping old saved rows.
+-- Retain all rows until an explicit, verified acknowledgement cleanup exists.
+-- MAX_PENDING is now a reminder threshold, not permission to delete telemetry.
 trimPendingOverCap = function()
-  local dropped = 0
-  while #pending > MAX_PENDING do
-    local dropIdx = nil
-    -- Saved to disk is not an acknowledgement from the collector. Preserve
-    -- high-signal rows regardless of whether an earlier snapshot included them.
-    if not dropIdx then
-      for i = 1, #pending do
-        local t = pending[i] and pending[i].type
-        if t and DROP_UNDER_PRESSURE[t] then
-          dropIdx = i
-          break
-        end
-      end
-    end
-    if not dropIdx then
-      dropIdx = 1
-    end
-    local gone = table.remove(pending, dropIdx)
-    if gone and gone.id then
-      pendingById[gone.id] = nil
-    end
-    dropped = dropped + 1
-  end
-  if dropped > 0 then
-    local db = charStore()
-    db.dropped_total = (tonumber(db.dropped_total) or 0) + dropped
-  end
-  return dropped
+  return 0
+end
+
+-- Receipt cleanup is not part of this build. A disk snapshot is not proof the
+-- collector captured it, so nothing is removed here.
+function retireHostReceipts()
+  return 0
 end
 
 -- Snapshot membership is local bookkeeping, never proof of collector delivery.
@@ -125,7 +107,7 @@ function chat(msg)
   DEFAULT_CHAT_FRAME:AddMessage("|cff7ad1ff[ForeverLAN]|r " .. tostring(msg))
 end
 
---- Gentle nudge when the local queue is near/at capacity (host may be offline).
+--- Remind about unsaved observations, not retained history (host may be offline).
 function maybeRemindQueuePressure(droppedCount)
   if not enteredWorld or not setting("push_reminders") then
     return
@@ -140,7 +122,10 @@ function maybeRemindQueuePressure(droppedCount)
   if pendingFullyFlushedToDisk() then
     return
   end
-  local n = #pending
+  local n = 0
+  for _, ev in ipairs(pending) do
+    if not eventSavedToDisk(ev) then n = n + 1 end
+  end
   local hittingCap = (droppedCount or 0) > 0 or n >= MAX_PENDING
   local softWarn = n >= QUEUE_SOFT_WARN
   if not hittingCap and not softWarn then
@@ -156,20 +141,18 @@ function maybeRemindQueuePressure(droppedCount)
   if hittingCap then
     chat(
       string.format(
-        "Queue full (%d/%d) - click |cffffffffFL|r or logout.",
-        n,
-        MAX_PENDING
+        "Your adventure log has %d new entries. Click |cffffffffFL|r to save when you're somewhere safe.",
+        n
       )
     )
     chat(
-      "If you don't, Forever LAN starts dropping older/low-value events so dings and deaths still fit. Nothing is sent to the board until you Push or log out."
+      "Logging out normally saves your progress too."
     )
   else
     chat(
       string.format(
-        "Queue getting full (%d/%d) - click |cffffffffFL|r when you can.",
-        n,
-        MAX_PENDING
+        "%d new entries in your adventure log. Click |cffffffffFL|r to save at your next break.",
+        n
       )
     )
   end
@@ -223,6 +206,7 @@ end
 
 -- Short labels for Push feedback (chat only). Unknown types fall back to raw name.
 PUSH_SUMMARY_LABEL = {
+  PLAYER_HONORABLE_KILLS = "honorable kills",
   LOGIN = "login",
   LOGOUT = "logout",
   WORLD_ENTER = "world",
@@ -239,17 +223,17 @@ PUSH_SUMMARY_LABEL = {
   PLAYER_MONEY = "money",
   PLAYER_QUESTS = "quests",
   PLAYER_XP_SNAPSHOT = "XP",
-  PLAYER_LOCATION = "subzone",
+  PLAYER_LOCATION = "places visited",
   PLAYER_PROFESSIONS = "professions",
   PLAYER_FOOD_BUFF = "buff",
-  PLAYER_COMBAT_TIME = "combat-time",
-  PLAYER_CRAFT = "craft",
-  PLAYER_LOOT_RARE = "rare-loot",
-  PLAYER_LOOT_EPIC = "epic-loot",
+  PLAYER_COMBAT_TIME = "time in combat",
+  PLAYER_CRAFT = "crafting",
+  PLAYER_LOOT_RARE = "rare loot",
+  PLAYER_LOOT_EPIC = "epic loot",
   PLAYER_POWER_STATS = "power",
   POSITION_UPDATE = "position",
   PING = "ping",
-  PARTY_ROSTER = "party",
+  PARTY_ROSTER = "party updates",
 }
 
 --- Count what Push will write to disk vs what was already covered by last flush.
@@ -284,14 +268,14 @@ function summarizePendingForPush()
   for i = 1, #parts do
     if shown < 5 then
       local label = PUSH_SUMMARY_LABEL[parts[i].t] or parts[i].t
-      bits[#bits + 1] = string.format("%s %d", label, parts[i].c)
+      bits[#bits + 1] = string.format("%s: %d", label, parts[i].c)
       shown = shown + 1
     else
       other = other + parts[i].c
     end
   end
   if other > 0 then
-    bits[#bits + 1] = string.format("other %d", other)
+    bits[#bits + 1] = string.format("other: %d", other)
   end
   return newCount, total - newCount, total, table.concat(bits, ", ")
 end
@@ -300,29 +284,19 @@ end
 function buildPushReportLines(newCount, alreadyCount, total, breakdown)
   local lines = {}
   if total == 0 then
-    lines[#lines + 1] = "Push done: queue was empty - nothing for the collector."
+    lines[#lines + 1] = "No adventures to save yet."
   elseif newCount == 0 then
-    lines[#lines + 1] = string.format(
-      "Push done: already on disk (%d events) - collector can re-read.",
-      total
-    )
+    lines[#lines + 1] = "Your adventure log is already saved on this PC."
   else
     lines[#lines + 1] = string.format(
-      "Push done: |cffffffff%d|r new → disk (%d total for collector). Left unsaved: |cffffffff0|r.",
-      newCount,
-      total
+      "Adventure saved: |cffffffff%d|r new " .. (newCount == 1 and "entry." or "entries."),
+      newCount
     )
     if breakdown and breakdown ~= "" then
       lines[#lines + 1] = "  " .. breakdown
     end
-    if alreadyCount > 0 then
-      lines[#lines + 1] = string.format(
-        "  (+ %d already saved earlier still in the snapshot)",
-        alreadyCount
-      )
-    end
   end
-  lines[#lines + 1] = "Collector reads the file after reload; host when the collector is up."
+  lines[#lines + 1] = "Keep the Forever LAN companion running. It sends saved progress to the board when connected."
   return lines
 end
 
@@ -440,9 +414,9 @@ function combatLogStatusLabel()
     return "off"
   end
   if ForeverLANDB and ForeverLANDB.combat_log_on then
-    return "on?"
+    return "unconfirmed (last seen on)"
   end
-  return "off?"
+  return "not confirmed"
 end
 
 function recordCapabilities()
@@ -494,10 +468,10 @@ function showCombatLogHint()
   lastCombatLogRemindAt = now() -- first follow-up wait starts after this tip
   local on = combatLogUiOn()
   if on == true then
-    chat("Combat log ON - kills/zones stream live (no Push needed for those).")
+    chat("Combat logging is on. Keep the companion running to send combat updates as you play. Use FL to save the rest.")
   else
     chat(
-      "Combat log is a status line. Click it once if it says off. Do not click it again."
+      "Right-click FL once to turn on combat logging. Left-click FL to save your adventure log."
     )
   end
 end
@@ -627,7 +601,7 @@ function showLoadHint()
   chat(
     "v" ..
       ADDON_VERSION ..
-      " collecting - |cffffffff/fl|r - Push writes disk - combat log line is click-once"
+      " - ready for adventure. Left-click |cffffffffFL|r to save; |cffffffff/fl|r for your log."
   )
 end
 
